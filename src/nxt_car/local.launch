@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="nxt_car" type="car.py" name="car" output="screen" respawn="false" />
+  <node pkg="nxt_car" type="car_control.py" name="car_control" output="screen" />
+</launch>

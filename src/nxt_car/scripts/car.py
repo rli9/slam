@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import roslib; roslib.load_manifest('nxt_car')
+import rospy
+import nxt.locator
+from nxt.motor import PORT_A, PORT_B, PORT_C
+import nxt.motor
+
+from std_msgs.msg import String
+
+class Car(object):
+    def __init__(self):
+        nxt.motor.Motor.debug = 1
+
+        self.brick = nxt.locator.find_one_brick()
+
+        self.l_motor = nxt.motor.Motor(self.brick, PORT_A)
+        self.r_motor = nxt.motor.Motor(self.brick, PORT_B)
+
+        self.sub = rospy.Subscriber('car_control', String, self.control_callback)
+
+    def control_callback(self, data):
+        rospy.loginfo('control_callback(%s)' % data.data)
+        getattr(self, data.data)()
+
+    def move_fwd(self):
+        self.l_motor.weak_turn(64, 360)
+        self.r_motor.weak_turn(64, 360)
+
+
+def main():
+    rospy.init_node('car', log_level=rospy.INFO)
+
+    car = Car()
+
+    rospy.spin()
+
+if __name__ == '__main__':
+    main()
