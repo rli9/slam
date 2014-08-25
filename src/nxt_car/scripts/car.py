@@ -23,8 +23,18 @@ class Car(object):
         rospy.loginfo('control_callback(%s)' % data.data)
         getattr(self, data.data)()
 
-    def move_fwd(self):
+    def move_forward(self):
         self.l_motor.weak_turn(64, 360)
+        self.r_motor.weak_turn(64, 360)
+
+    def move_backward(self):
+        self.l_motor.weak_turn(-64, 360)
+        self.r_motor.weak_turn(-64, 360)
+
+    def move_right(self):
+        self.l_motor.weak_turn(64, 360)
+
+    def move_left(self):
         self.r_motor.weak_turn(64, 360)
 
 
