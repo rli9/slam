@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
-import roslib; roslib.load_manifest('nxt_car')
+import roslib
+roslib.load_manifest('nxt_car')
+
 import rospy
 import nxt.locator
-from nxt.motor import PORT_A, PORT_B, PORT_C
+from nxt.motor import PORT_A, PORT_B
 import nxt.motor
-
 from std_msgs.msg import String
+
 
 class Car(object):
     def __init__(self):
@@ -14,8 +16,8 @@ class Car(object):
 
         self.brick = nxt.locator.find_one_brick()
 
-        self.l_motor = nxt.motor.Motor(self.brick, PORT_A)
-        self.r_motor = nxt.motor.Motor(self.brick, PORT_B)
+        self.r_motor = nxt.motor.Motor(self.brick, PORT_A)
+        self.l_motor = nxt.motor.Motor(self.brick, PORT_B)
 
         self.sub = rospy.Subscriber('car_control', String, self.control_callback)
 
@@ -31,11 +33,15 @@ class Car(object):
         self.l_motor.weak_turn(-64, 360)
         self.r_motor.weak_turn(-64, 360)
 
-    def move_right(self):
+    def turn_right(self):
         self.l_motor.weak_turn(64, 360)
 
-    def move_left(self):
+    def turn_left(self):
         self.r_motor.weak_turn(64, 360)
+
+    def brake(self):
+        self.l_motor.brake()
+        self.r_motor.brake()
 
 
 def main():

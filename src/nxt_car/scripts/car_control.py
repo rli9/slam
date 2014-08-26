@@ -12,44 +12,56 @@ class CarControl(object):
 
         self.pub = rospy.Publisher('car_control', String)
 
-        for direction in ['forward', 'backward', 'right', 'left']:
-            self._define_move_attr(direction)
+        for action in ['move_forward', 'move_backward', 'turn_right', 'turn_left', 'brake']:
+            self._define_action_attr(action)
 
-    def status(self):
-        rospy.loginfo("data: %f" % (self.joint_state))
+    def _define_action_attr(self, action):
+        def _action(self):
+            self.pub.publish(action)
+        _action.__name__ = action
 
-    def _define_move_attr(self, direction):
-        def _move(self):
-            self.pub.publish('move_%s' % direction)
-
-        _move.__name__ = 'move_%s' % direction
-
-        setattr(self, 'move_%s' % direction, types.MethodType(_move, self))
+        setattr(self, action, types.MethodType(_action, self))
 
 
-class CarControlUI(object):
+class CarControlUI(wx.Frame):
     def __init__(self):
+        wx.Frame.__init__(self, None, -1,
+                          title='car control',
+                          size=(640, 480),
+                          style=wx.DEFAULT_FRAME_STYLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX))
+
+        self.panel = wx.Panel(self, -1)
+        self.panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.panel.Bind(wx.EVT_KEY_UP, self.on_key_up)
+
+        self.Center()
+        self.Show(True)
+
         self.car_control = CarControl()
+        self.curr_key_code = None
 
-        self.frame = wx.Frame(None, title='car control', size=(820, 500))
+    def on_key_down(self, event):
+        key_code = event.GetKeyCode()
+        self.SetTitle("%d" % key_code)
 
-        self.forward_button = wx.Button(self.frame, label="F", pos=(710, 380), size=(50, 50))
-        self.backward_button = wx.Button(self.frame, label="B", pos=(710, 430), size=(50, 50))
-        self.right_button = wx.Button(self.frame, label="R", pos=(760, 430), size=(50, 50))
-        self.left_button = wx.Button(self.frame, label="L", pos=(660, 430), size=(50, 50))
+        for k, v in {wx.WXK_LEFT: 'turn_left', wx.WXK_RIGHT: 'turn_right',
+                     wx.WXK_UP: 'move_forward', wx.WXK_DOWN: 'move_backward'}.iteritems():
+            if key_code == k:
+                if key_code != self.curr_key_code:
+                    self.car_control.brake()
 
-        for direction in ['forward', 'backward', 'right', 'left']:
-            self._bind_on_button_clicked(direction)
+                self.curr_key_code = key_code
+                getattr(self.car_control, v)()
 
-        self.frame.Show()
+        rospy.loginfo("on_key_down %d" % key_code)
 
-    def _bind_on_button_clicked(self, direction):
-        def _on_button_clicked(self, event):
-            getattr(self.car_control, 'move_%s' % direction)()
+    def on_key_up(self, event):
+        key_code = event.GetKeyCode()
 
-        _on_button_clicked.__name__ = 'on_button_clicked_%s' % direction
+        if self.curr_key_code == key_code:
+            self.car_control.brake()
 
-        getattr(self, '%s_button' % direction).Bind(wx.EVT_BUTTON, types.MethodType(_on_button_clicked, self))
+        rospy.loginfo("on_key_up %d" % key_code)
 
 
 def main():
