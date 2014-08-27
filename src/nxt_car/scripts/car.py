@@ -7,7 +7,7 @@ import rospy
 import nxt.locator
 from nxt.motor import PORT_A, PORT_B
 import nxt.motor
-from std_msgs.msg import String
+from nxt_car.msg import CarControl
 
 
 class Car(object):
@@ -19,25 +19,40 @@ class Car(object):
         self.r_motor = nxt.motor.Motor(self.brick, PORT_A)
         self.l_motor = nxt.motor.Motor(self.brick, PORT_B)
 
-        self.sub = rospy.Subscriber('car_control', String, self.control_callback)
+        self.sub = rospy.Subscriber('car_control', CarControl, self.control_callback)
 
     def control_callback(self, data):
-        rospy.loginfo('control_callback(%s)' % data.data)
-        getattr(self, data.data)()
+        if data.velocity_x == 0 and data.velocity_y == 0:
+            self.brake()
+        else:
+            action = {'l_motor': [0, 0], 'r_motor': [0, 0]}
 
-    def move_forward(self):
-        self.l_motor.weak_turn(64, 360)
-        self.r_motor.weak_turn(64, 360)
+            if data.velocity_y > 0:
+                action.update(self.move_forward_action())
+            elif data.velocity_y < 0:
+                action.update(self.move_backward_action())
 
-    def move_backward(self):
-        self.l_motor.weak_turn(-64, 360)
-        self.r_motor.weak_turn(-64, 360)
+            if data.velocity_x > 0:
+                action.update(self.turn_right_action())
+            elif data.velocity_x < 0:
+                action.update(self.turn_left_action())
 
-    def turn_right(self):
-        self.l_motor.weak_turn(64, 360)
+            rospy.loginfo('control_callback(%s)' % action)
 
-    def turn_left(self):
-        self.r_motor.weak_turn(64, 360)
+            self.l_motor.weak_turn(action['l_motor'][0], action['l_motor'][1])
+            self.r_motor.weak_turn(action['r_motor'][0], action['r_motor'][1])
+
+    def move_forward_action(self):
+        return {'l_motor': [64, 360], 'r_motor': [64, 360]}
+
+    def move_backward_action(self):
+        return {'l_motor': [-64, 360], 'r_motor': [-64, 360]}
+
+    def turn_right_action(self):
+        return {'l_motor': [128, 720]}
+
+    def turn_left_action(self):
+        return {'r_motor': [128, 720]}
 
     def brake(self):
         self.l_motor.brake()

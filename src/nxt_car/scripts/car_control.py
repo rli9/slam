@@ -3,24 +3,16 @@
 import rospy
 import wx
 import types
-from std_msgs.msg import String
+from nxt_car.msg import CarControl
 
 
-class CarControl(object):
-    def __init__(self):
-        rospy.init_node("car_control", anonymous=True, log_level=rospy.INFO)
+WXKEY_UP = 0x1
+WXKEY_DOWN = 0x2
+WXKEY_LEFT = 0x4
+WXKEY_RIGHT = 0x8
 
-        self.pub = rospy.Publisher('car_control', String)
-
-        for action in ['move_forward', 'move_backward', 'turn_right', 'turn_left', 'brake']:
-            self._define_action_attr(action)
-
-    def _define_action_attr(self, action):
-        def _action(self):
-            self.pub.publish(action)
-        _action.__name__ = action
-
-        setattr(self, action, types.MethodType(_action, self))
+KEY_MAPS = {wx.WXK_LEFT: WXKEY_LEFT, wx.WXK_RIGHT: WXKEY_RIGHT,
+            wx.WXK_UP: WXKEY_UP, wx.WXK_DOWN: WXKEY_DOWN}
 
 
 class CarControlUI(wx.Frame):
@@ -37,38 +29,50 @@ class CarControlUI(wx.Frame):
         self.Center()
         self.Show(True)
 
-        self.car_control = CarControl()
-        self.curr_key_code = None
+        self.pub = rospy.Publisher('car_control', CarControl)
+        self.down_keys = 0
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
-        self.SetTitle("%d" % key_code)
 
-        for k, v in {wx.WXK_LEFT: 'turn_left', wx.WXK_RIGHT: 'turn_right',
-                     wx.WXK_UP: 'move_forward', wx.WXK_DOWN: 'move_backward'}.iteritems():
+        for k, v in KEY_MAPS.iteritems():
             if key_code == k:
-                if key_code != self.curr_key_code:
-                    self.car_control.brake()
-
-                self.curr_key_code = key_code
-                getattr(self.car_control, v)()
-
-        rospy.loginfo("on_key_down %d" % key_code)
+                self.notify_velocity_change(self.down_keys | v)
 
     def on_key_up(self, event):
         key_code = event.GetKeyCode()
 
-        if self.curr_key_code == key_code:
-            self.car_control.brake()
+        for k, v in KEY_MAPS.iteritems():
+            if key_code == k:
+                self.notify_velocity_change(self.down_keys & ~v)
 
-        rospy.loginfo("on_key_up %d" % key_code)
+    def notify_velocity_change(self, down_keys):
+        self.down_keys = down_keys
+
+        car_control_msg = CarControl()
+        car_control_msg.velocity_x = car_control_msg.velocity_y = 0
+
+        if (self.down_keys & WXKEY_UP) != 0:
+            car_control_msg.velocity_y += 1
+
+        if (self.down_keys & WXKEY_DOWN) != 0:
+            car_control_msg.velocity_y -= 1
+
+        if (self.down_keys & WXKEY_RIGHT) != 0:
+            car_control_msg.velocity_x += 1
+
+        if (self.down_keys & WXKEY_LEFT) != 0:
+            car_control_msg.velocity_x -= 1
+
+        self.pub.publish(car_control_msg)
 
 
 def main():
+    rospy.init_node('car_control', log_level=rospy.INFO)
+
     app = wx.App()
     car_control_ui = CarControlUI()
     app.MainLoop()
-
 
 if __name__ == '__main__':
     main()
