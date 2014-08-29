@@ -1,9 +1,10 @@
 slam
 ====
 
-Install rgbdslam in hydro (ubuntu 12.04)
+#Install rgbdslam in hydro (ubuntu 12.04)#
 
-Prepare Workspace
+
+##Prepare Workspace##
 
 source /opt/ros/hydro/setup.bash
 
@@ -20,7 +21,7 @@ catkin_make
 source devel/setup.bash
 
 
-Get RGBDSLAM
+##Get RGBDSLAM##
 
 cd ~/rgbdslam_catkin_ws/src
 
@@ -30,7 +31,7 @@ unzip -q hydro.zip
 
 cd ~/rgbdslam_catkin_ws/
 
-Install
+##Install##
 
 rosdep update
 
@@ -38,7 +39,7 @@ rosdep install rgbdslam
 
 catkin_make
  
-ERRORs and Solution
+##ERRORs and Solution##
 
 1. when excute catkin_make follow steps above,there will be errors like" Error: no such instruction: `vfmadd312ss (%r15),%xmm0,%xmm1'"
 
@@ -54,7 +55,7 @@ solutions:
 
 5. make -j8
 
-GPU OPTION
+##GPU OPTION##
 
 if there is no a good gpu in your machine.
 
