@@ -4,12 +4,19 @@ slam
 Install rgbdslam in hydro (ubuntu 12.04)
 
 Prepare Workspace
+
 source /opt/ros/hydro/setup.bash
+
 mkdir -p ~/rgbdslam_catkin_ws/src
+
 cd ~/rgbdslam_catkin_ws/src
+
 catkin_init_workspace
+
 cd ~/rgbdslam_catkin_ws/
+
 catkin_make
+
 source devel/setup.bash
 
 Get RGBDSLAM
