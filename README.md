@@ -60,3 +60,21 @@ solutions:
 if there is no a good gpu in your machine.
 
 change USE_SIFT_GPU to 0 in CMkeLists.txt
+
+#Install freenect stack or OpenNI camera package on ROS hydro#
+
+##Install Freenect stack##
+
+$ sudo apt-get install ros-hydro-freenect-stack
+
+##Launch freenect node##
+
+$ roslaunch freenect_stack freenect.launch
+
+##Install OpenNI camera##
+
+$ sudo apt-get install ros-hydro-openni-camera
+
+##Launch openni node##
+
+$ roslaunch openni_launch openni.launch
