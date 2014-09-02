@@ -61,7 +61,7 @@ if there is no a good gpu in your machine.
 
 change USE_SIFT_GPU to 0 in CMkeLists.txt
 
-#Install freenect stack or OpenNI camera package on ROS hydro#
+#Install kinect node, freenect or openni#
 
 ##Install Freenect stack##
 
@@ -78,3 +78,17 @@ $ sudo apt-get install ros-hydro-openni-camera
 ##Launch openni node##
 
 $ roslaunch openni_launch openni.launch
+
+#Setup Yocto + ROS on Galileo board#
+
+refer to http://wiki.ros.org/IntelGalileo/How%20to%20install%20ROS%20Hydro%20on%20Intel%20Galileo
+
+Some instructions in this section: http://wiki.ros.org/IntelGalileo/IntelGalileoYoctoSetupOnGalileo may cause problems when running roscore on Galileo board. 
+
+They are:
+
+_TIMEOUT_MASTER_START = 20.0 ,  in /usr/lib/python2.7/site-packages/roslaunch/launch.py
+
+this value should be set to a mucher larger value than 20, such as 500.
+
+and the instruction "$ mv /usr/lib/ros* /opt/ros/lib "  should not be executed.
