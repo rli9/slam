@@ -89,6 +89,6 @@ They are:
 
 _TIMEOUT_MASTER_START = 20.0 ,  in /usr/lib/python2.7/site-packages/roslaunch/launch.py
 
-this value should be set to a mucher larger value than 20, such as 500.
+this value should be set to a much larger value than 20, such as 500.
 
 and the instruction "$ mv /usr/lib/ros* /opt/ros/lib "  should not be executed.
