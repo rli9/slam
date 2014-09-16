@@ -45,15 +45,15 @@ catkin_make
 
 solutions:
 
-`$ cd  ~/catkin_ws/src/rgbdslam_v2-hydro/
+`$ cd  ~/catkin_ws/src/rgbdslam_v2-hydro/`
 
- $ mkdir build
+`$ mkdir build`
  
- $ cd build
+`$ cd build`
  
- $ cmake ..
+`$ cmake ..`
  
- $ make -j8`
+`$ make -j8`
 
 ##GPU OPTION##
 
@@ -63,11 +63,11 @@ change USE_SIFT_GPU to 0 in CMkeLists.txt
 
 #Install OpenNI package#
 
-`$ sudo apt-get install ros-hydro-openni-camera
+`$ sudo apt-get install ros-hydro-openni-camera`
 
- $ sudo apt-get install ros-hydro-openni-launch
+`$ sudo apt-get install ros-hydro-openni-launch`
  
- $ roslaunch openni_launch openni.launch`
+`$ roslaunch openni_launch openni.launch`
 
 ##Configure openni node##
 
@@ -75,11 +75,9 @@ Edit launch file -- openni.launch in /opt/ros/hydro/share/openni_launch/launch/o
 
 add the following lines to change depth_mode and rgb_mode (lower the resolution of rgb image and depth image to 320 * 240 for performance):
 
-`
-<param name="/$(arg camera)/driver/image_mode" value="5" />
+`<param name="/$(arg camera)/driver/image_mode" value="5" />`
 
-<param name="/$(arg camera)/driver/depth_mode" value="5" />
-`
+`<param name="/$(arg camera)/driver/depth_mode" value="5" />`
 
 insert them after the line where argument "depth_frame_id" is set.
 
