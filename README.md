@@ -46,9 +46,13 @@ catkin_make
 solutions:
 
 `$ cd  ~/catkin_ws/src/rgbdslam_v2-hydro/
+
  $ mkdir build
+ 
  $ cd build
+ 
  $ cmake ..
+ 
  $ make -j8`
 
 ##GPU OPTION##
@@ -60,7 +64,9 @@ change USE_SIFT_GPU to 0 in CMkeLists.txt
 #Install OpenNI package#
 
 `$ sudo apt-get install ros-hydro-openni-camera
+
  $ sudo apt-get install ros-hydro-openni-launch
+ 
  $ roslaunch openni_launch openni.launch`
 
 ##Configure openni node##
@@ -71,6 +77,7 @@ add the following lines to change depth_mode and rgb_mode (lower the resolution 
 
 `
 <param name="/$(arg camera)/driver/image_mode" value="5" />
+
 <param name="/$(arg camera)/driver/depth_mode" value="5" />
 `
 
