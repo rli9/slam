@@ -45,15 +45,11 @@ catkin_make
 
 solutions:
 
-1. cd  ~/catkin_ws/src/rgbdslam_v2-hydro/
-
-2.mkdir build
-
-3. cd build
-
-4. cmake ..
-
-5. make -j8
+$ cd  ~/catkin_ws/src/rgbdslam_v2-hydro/
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make -j8
 
 ##GPU OPTION##
 
@@ -61,23 +57,31 @@ if there is no a good gpu in your machine.
 
 change USE_SIFT_GPU to 0 in CMkeLists.txt
 
-#Install kinect node, freenect or openni#
-
-##Install Freenect stack##
-
-$ sudo apt-get install ros-hydro-freenect-stack
-
-##Launch freenect node##
-
-$ roslaunch freenect_stack freenect.launch
-
-##Install OpenNI camera##
+#Install OpenNI package#
 
 $ sudo apt-get install ros-hydro-openni-camera
+$ sudo apt-get install ros-hydro-openni-launch
+$ roslaunch openni_launch openni.launch
 
-##Launch openni node##
+##Configure openni node##
+
+Edit launch file -- openni.launch in /opt/ros/hydro/share/openni_launch/launch/openni.launch
+
+add the following lines to change depth_mode and rgb_mode (lower the resolution of rgb image and depth image to 320 * 240 for performance):
+
+<param name="/$(arg camera)/driver/image_mode" value="5" />
+<param name="/$(arg camera)/driver/depth_mode" value="5" />
+
+insert them after the line where argument "depth_frame_id" is set.
+
+##Run the opnni node##
+
+Before running the openni node, make sure environment variable -- ROS_MASTER_URI was set correctly, and roscore is running at the master host.
+
+type the command below:
 
 $ roslaunch openni_launch openni.launch
+
 
 #Setup Yocto + ROS on Galileo board#
 
