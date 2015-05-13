@@ -20,7 +20,7 @@ class Car(object):
             self.stop()
 
         def run(self, direction, speed):
-            analogyWrite(self.speed_pin, speed)
+            digitalWrite(self.speed_pin, HIGH)
             digitalWrite(self.direction_pin, direction)
 
         def stop(self):
@@ -28,15 +28,20 @@ class Car(object):
             digitalWrite(self.speed_pin, LOW)
 
     def __init__(self):
+        rospy.loginfo('Car.__init__')
+        
         self.right_motor = Car.Motor(4, 5)
         self.left_motor = Car.Motor(7, 6)
 
         self.sub = rospy.Subscriber('car_control', String, self.control_callback)
-        rospy.loginfo('Car.__init__')
 
     def control_callback(self, data):
-        self.move_forward(100, 100)
-        delay(5000)
+        rospy.loginfo('Car.control_callback %s' % data.data)
+        
+        actions = {"w": self.move_forward, "s": self.move_backward, "a": self.turn_left, "d": self.turn_right}
+        
+        actions[data.data](100, 100)
+        delay(3000)
         self.stop()
 
     def stop(self):
@@ -46,7 +51,19 @@ class Car(object):
     def move_forward(self, left_speed, right_speed):
         self.left_motor.run(HIGH, left_speed)
         self.right_motor.run(HIGH, right_speed)
-
+        
+    def move_backward(self, left_speed, right_speed):
+        self.left_motor.run(LOW, left_speed)
+        self.right_motor.run(LOW, right_speed)
+        
+    def turn_left(self, left_speed, right_speed):
+        self.left_motor.run(LOW, left_speed)
+        self.right_motor.run(HIGH, right_speed)
+        
+    def turn_right(self, left_speed, right_speed):
+        self.left_motor.run(HIGH, left_speed)
+        self.right_motor.run(LOW, right_speed)        
+        
 def main():
     log = logging.getLogger('pygalileo')
     log.setLevel(logging.INFO)
