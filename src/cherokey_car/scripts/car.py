@@ -8,11 +8,13 @@ import logging
 from pygalileo.arduino import *
 from std_msgs.msg import String
 
+import argparse
+
 class Car(object):
     class Motor(object):
         def __init__(self, direction_pin, speed_pin):
-            self.direction_pin = direction_pin
-            self.speed_pin = speed_pin
+            self.direction_pin = int(direction_pin)
+            self.speed_pin = int(speed_pin)
 
             pinMode(self.direction_pin, OUTPUT)
             pinMode(self.speed_pin, OUTPUT)
@@ -20,59 +22,103 @@ class Car(object):
             self.stop()
 
         def run(self, direction, speed):
-            digitalWrite(self.speed_pin, HIGH)
             digitalWrite(self.direction_pin, direction)
+            digitalWrite(self.speed_pin, HIGH)
 
         def stop(self):
             digitalWrite(self.direction_pin, LOW)
             digitalWrite(self.speed_pin, LOW)
 
-    def __init__(self):
+    class Light(object):
+        def __init__(self, pin):
+            self.pin = int(pin)
+            pinMode(self.pin, OUTPUT)
+            self.off()
+
+        def on(self):
+            digitalWrite(self.pin, HIGH)
+
+        def off(self):
+            digitalWrite(self.pin, LOW)
+
+    class EmptyLight(object):
+        def on(self):
+            return
+
+        def off(self):
+            return
+
+    def __init__(self, light_pins):
         rospy.loginfo('Car.__init__')
-        
+
         self.right_motor = Car.Motor(4, 5)
         self.left_motor = Car.Motor(7, 6)
+
+        if light_pins is not None:
+            self.lights = {"head": Car.Light(light_pins[0]), "tail": Car.Light(light_pins[1]), "left_turn": Car.Light(light_pins[2]), "right_turn": Car.Light(light_pins[3])}
+        else:
+            self.lights = {"head": Car.EmptyLight(), "tail": Car.EmptyLight(), "left_turn": Car.EmptyLight(), "right_turn": Car.EmptyLight()}
 
         self.sub = rospy.Subscriber('car_control', String, self.control_callback)
 
     def control_callback(self, data):
-        rospy.loginfo('Car.control_callback %s' % data.data)
-        
+        action = ','.join(["'%s':'%s'" % (part.strip().split(' ')[0], part.strip().split(' ')[1]) for part in data.data.split(',')])
+
+        rospy.loginfo('Car.control_callback %s' % action)
+
+        action = eval("{%s}" % action)
+
         actions = {"w": self.move_forward, "s": self.move_backward, "a": self.turn_left, "d": self.turn_right}
-        
-        actions[data.data](100, 100)
-        delay(3000)
-        self.stop()
+
+        actions[action['direction']](**action)
+        # delay(3000)
+        # self.stop()
 
     def stop(self):
         self.right_motor.stop()
         self.left_motor.stop()
 
-    def move_forward(self, left_speed, right_speed):
-        self.left_motor.run(HIGH, left_speed)
-        self.right_motor.run(HIGH, right_speed)
-        
+    def move_forward(self, **args):
+        self.lights["head"].on()
+
+        if 'speed' not in args:
+            args["speed"] = {"left": 255, "right": 255}
+        rospy.loginfo('Car.move_forward %s' % args)
+
+        speed = args["speed"]
+
+        self.left_motor.run(HIGH, speed["left"])
+        self.right_motor.run(HIGH, speed["right"])
+
+        if args["distance"] is not None:
+            delay(int(args["distance"]) / ((speed["left"] + speed["right"]) / 2))
+
+            self.lights["head"].off()
+
     def move_backward(self, left_speed, right_speed):
         self.left_motor.run(LOW, left_speed)
         self.right_motor.run(LOW, right_speed)
-        
+
     def turn_left(self, left_speed, right_speed):
         self.left_motor.run(LOW, left_speed)
         self.right_motor.run(HIGH, right_speed)
-        
+
     def turn_right(self, left_speed, right_speed):
         self.left_motor.run(HIGH, left_speed)
-        self.right_motor.run(LOW, right_speed)        
-        
-def main():
+        self.right_motor.run(LOW, right_speed)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--light_pins', nargs=4, help='pins of lights system in sequence of head, tail, left turn and right turn')
+
+    args = parser.parse_args()
+
     log = logging.getLogger('pygalileo')
     log.setLevel(logging.INFO)
 
     rospy.init_node('car', log_level=rospy.INFO)
+    rospy.loginfo('__main__ %s' % args)
 
-    car = Car()
+    car = Car(args.light_pins)
 
     rospy.spin()
-
-if __name__ == '__main__':
-    main()
