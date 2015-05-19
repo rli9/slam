@@ -10,6 +10,9 @@ from std_msgs.msg import String
 
 import argparse
 
+def method_partial(func, *partial_args):
+    return lambda self, *args, **kwargs: func(self, *(partial_args + args), **kwargs)
+
 class Car(object):
     class Motor(object):
         def __init__(self, direction_pin, speed_pin):
@@ -70,42 +73,58 @@ class Car(object):
 
         actions = {"w": self.move_forward, "s": self.move_backward, "a": self.turn_left, "d": self.turn_right}
 
-        actions[action['direction']](**action)
+        direction = action.pop('direction')
+        actions[direction](**action)
         # delay(3000)
-        # self.stop()
+        self.stop()
 
     def stop(self):
         self.right_motor.stop()
         self.left_motor.stop()
+        for (key, value) in self.lights.items():
+            value.off()
 
-    def move_forward(self, **args):
-        self.lights["head"].on()
+    def move(self, direction, light, **args):
+        self.lights[light].on()
 
         if 'speed' not in args:
             args["speed"] = {"left": 255, "right": 255}
-        rospy.loginfo('Car.move_forward %s' % args)
+        rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
 
         speed = args["speed"]
 
-        self.left_motor.run(HIGH, speed["left"])
-        self.right_motor.run(HIGH, speed["right"])
+        self.left_motor.run(direction, speed["left"])
+        self.right_motor.run(direction, speed["right"])
 
-        if args["distance"] is not None:
+        if "distance" in args:
             delay(int(args["distance"]) / ((speed["left"] + speed["right"]) / 2))
 
-            self.lights["head"].off()
+            self.stop()
+            self.lights[light].off()
 
-    def move_backward(self, left_speed, right_speed):
-        self.left_motor.run(LOW, left_speed)
-        self.right_motor.run(LOW, right_speed)
+    move_forward = method_partial(move, HIGH, "head")
+    move_backward = method_partial(move, LOW, "tail")
 
-    def turn_left(self, left_speed, right_speed):
-        self.left_motor.run(LOW, left_speed)
-        self.right_motor.run(HIGH, right_speed)
+    def turn(self, left_direction, right_direction, light, **args):
+        self.lights[light].on()
 
-    def turn_right(self, left_speed, right_speed):
-        self.left_motor.run(HIGH, left_speed)
-        self.right_motor.run(LOW, right_speed)
+        if 'speed' not in args:
+            args["speed"] = {"left": 255, "right": 255}
+        rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
+
+        speed = args["speed"]
+
+        self.left_motor.run(left_direction, speed["left"])
+        self.right_motor.run(right_direction, speed["right"])
+
+        if "rotation" in args:
+            delay(int(args["rotation"]) / ((speed["left"] + speed["right"]) / 2))
+
+            self.stop()
+            self.lights[light].off()
+
+    turn_left = method_partial(turn, LOW, HIGH, "left_turn")
+    turn_right = method_partial(turn, HIGH, LOW, "right_turn")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
