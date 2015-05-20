@@ -26,7 +26,7 @@ class Car(object):
 
         def run(self, direction, speed):
             digitalWrite(self.direction_pin, direction)
-            digitalWrite(self.speed_pin, HIGH)
+            analogWrite(self.speed_pin, speed)
 
         def stop(self):
             digitalWrite(self.direction_pin, LOW)
@@ -88,16 +88,19 @@ class Car(object):
         self.lights[light].on()
 
         if 'speed' not in args:
-            args["speed"] = {"left": 255, "right": 255}
+            args["speed"] = 80
         rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
 
-        speed = args["speed"]
+        speed = int(args["speed"])
 
-        self.left_motor.run(direction, speed["left"])
-        self.right_motor.run(direction, speed["right"])
+        self.left_motor.run(direction, speed)
+        self.right_motor.run(direction, speed)
 
         if "distance" in args:
-            delay(int(args["distance"]) / ((speed["left"] + speed["right"]) / 2))
+            ms = int(args["distance"]) / speed
+
+            rospy.loginfo('Car.move(%d)' % ms)
+            delay(ms)
 
             self.stop()
             self.lights[light].off()
@@ -109,16 +112,20 @@ class Car(object):
         self.lights[light].on()
 
         if 'speed' not in args:
-            args["speed"] = {"left": 255, "right": 255}
+            args["speed"] = {"left": 80, "right": 80}
         rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
 
-        speed = args["speed"]
+        left_speed = int(args["speed"]["left"])
+        right_speed = int(args["speed"]["left"])
 
-        self.left_motor.run(left_direction, speed["left"])
-        self.right_motor.run(right_direction, speed["right"])
+        self.left_motor.run(left_direction, left_speed)
+        self.right_motor.run(right_direction, right_speed)
 
         if "rotation" in args:
-            delay(int(args["rotation"]) / ((speed["left"] + speed["right"]) / 2))
+            ms = int(args["rotation"]) / ((left_speed + right_speed) / 2)
+
+            rospy.loginfo('Car.move(%d)' % ms)
+            delay(ms)
 
             self.stop()
             self.lights[light].off()
@@ -132,8 +139,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    log = logging.getLogger('pygalileo')
-    log.setLevel(logging.INFO)
+    # log = logging.getLogger('pygalileo')
+    # log.setLevel(logging.INFO)
 
     rospy.init_node('car', log_level=rospy.INFO)
     rospy.loginfo('__main__ %s' % args)
