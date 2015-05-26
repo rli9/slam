@@ -83,29 +83,33 @@ class Car(object):
             args['width'] = 1280
         if 'height' not in args:
             args['height'] = 720
-        half_width = args['width'] / 2
-        quater_width = args['width'] / 4
 
-        half_height = args['height'] / 2
-        quater_height = args['height'] / 4
+        width = int(args['width'])
+        height = int(args['height'])
 
-        tolerant_error_width = args['width'] / 8
-        tolerant_error_height = args['height'] / 8
+        half_width = width / 2
+        quater_width = width / 4
 
-        object_region_x = ((args['object_x'] - half_width) + quater_width - tolerant_error_width) / quater_width
-        object_region_y = ((args['object_y'] - half_height) + quater_height - tolerant_error_height) / quater_height
+        half_height = height / 2
+        quater_height = height / 4
+
+        tolerant_error_width = width / 8
+        tolerant_error_height = height / 8
+
+        object_region_x = ((int(args['object_x']) - half_width) + quater_width - tolerant_error_width) / quater_width
+        object_region_y = ((int(args['object_y']) - half_height) + quater_height - tolerant_error_height) / quater_height
 
         rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
 
         if object_region_x > 0:
             self.turn_right(rotation=50000 * object_region_x)
         elif object_region_x < 0:
-            self.turn_left(rotation=50000 * object_region_x)
+            self.turn_left(rotation=-50000 * object_region_x)
 
         if object_region_y > 0:
-            self.move_forward(distance=50000 * object_region_y)
-        elif object_region_y < 0:
             self.move_backward(distance=50000 * object_region_y)
+        elif object_region_y < 0:
+            self.move_forward(distance=-50000 * object_region_y)
 
     def stop(self):
         self.right_motor.stop()
