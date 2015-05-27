@@ -37,6 +37,8 @@ public:
 
 	void initialize(cv::Point2f init_location);
 	void initialize(cv::Point2f init_location, int tracker_size);
+
+	cv::Point2i getWeightedAverageLocation();
 	
 private:
 
@@ -57,6 +59,8 @@ private:
 	float m_newSampleRange;
 
 	int m_initialSampleRange;
+
+	
 
 	float getSampleProbability(int sample_id);
 

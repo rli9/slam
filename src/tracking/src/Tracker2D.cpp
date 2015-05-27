@@ -203,3 +203,33 @@ void Tracker2D::drawTrackers(cv::Mat & disp_img)
 		cv::rectangle(disp_img, cv::Rect((int)leftUpConer.x, (int)leftUpConer.y, m_trackerSize, m_trackerSize), drawingColor);
 	}
 }
+
+cv::Point2i Tracker2D::getWeightedAverageLocation()
+{
+
+  // wait to be implemented.
+
+  cv::Point2f averagePosition;
+
+  int sampleNum = m_particleFilterTracker.getSampleNumber();
+  
+  float totalWeight = 0;
+
+  for(int i = 0; i < sampleNum; i ++){
+    float w = m_particleFilterTracker.getSampleWeightByIndex(i);
+    cv::Point2f pt = m_particleFilterTracker.getSampleByIndex(i);
+
+    totalWeight += w;
+    averagePosition.x += pt.x * w;
+    averagePosition.y += pt.y * w;
+  }
+  
+  if( totalWeight <= 0){
+    return cv::Point2i(-1,-1);
+  }
+
+  averagePosition.x /= totalWeight;
+  averagePosition.y /= totalWeight;
+
+  return cv::Point2i((int)averagePosition.x, (int)averagePosition.y);
+}

@@ -25,6 +25,9 @@ int trackerSize = 10;
 // publish tracking images.
 image_transport::Publisher pub;
 
+// publish the object location ( & image size)
+ros::Publisher location_pub; 
+
 int trackerMaxSize = -1;
 
 void imageCallback(const sensor_msgs::ImageConstPtr & msg){
@@ -70,7 +73,24 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     // republish this image.
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", temp).toImageMsg();
     pub.publish(msg);
-   
+
+    // publish to topic -- object_location
+    cv::Point2i location = tracker->getWeightedAverageLocation();
+    std::stringstream locationStrStream;
+    
+    if( location.x < 0 || location.y < 0){
+      locationStrStream << "x " << "NaN" << " , " << "y " << "NaN" << " , ";
+    }else{
+      // "x 10, y 10, width 360, height 640"
+      locationStrStream << "x " << location.x << " , " << "y " << location.y << " , ";
+    }
+
+    locationStrStream << "width " << img.cols << " , " << "heigth " << img.rows;
+    
+    std_msgs::String locationMsg;
+    locationMsg.data = locationStrStream.str();
+    location_pub.publish(locationMsg);
+    
   }
 
   else if (! objectSpecified ) {
@@ -165,6 +185,8 @@ int main(int argc, char **argv)
 
   pub = it.advertise("camera/tracking_image", 1);
   
+  location_pub = nh.advertise<std_msgs::String>("/object_location", 1);
+  
   try{
     sub = it.subscribe("/camera/decomp_image", 5, imageCallback);
   }
@@ -172,7 +194,6 @@ int main(int argc, char **argv)
     ROS_ERROR("Subscribing Error!");
   }
 
-  
   ros::Subscriber trackSizeSub = nh.subscribe<geometry_msgs::Twist>("/change_tracker_size", 1, trackerAdjustingCallback);
  
   ros::Subscriber trackingToggleSub = nh.subscribe<std_msgs::String>("/tracking_toggle", 1, trackingToggleCallback);
