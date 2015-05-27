@@ -76,7 +76,11 @@ class Car(object):
         direction = action.pop('direction')
         actions[direction](**action)
         # delay(3000)
-        self.stop()
+        # self.stop()
+
+    MAX_SPEED = 100
+    MIN_LEFT_RIGHT_SPEED = 80
+    MIN_FORWARD_BACKWARD_SPEED = 70
 
     def follow(self, **args):
         if 'width' not in args:
@@ -101,15 +105,22 @@ class Car(object):
 
         rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
 
-        if object_region_x > 0:
-            self.turn_right(rotation=50000 * object_region_x)
-        elif object_region_x < 0:
-            self.turn_left(rotation=-50000 * object_region_x)
+        # Adjust left/right direction until object is in center of x coordinate,
+        # then adjust forward/backward
 
-        if object_region_y > 0:
-            self.move_backward(distance=50000 * object_region_y)
-        elif object_region_y < 0:
-            self.move_forward(distance=-50000 * object_region_y)
+        if object_region_x != 0:
+            speed = min(abs(self.MIN_LEFT_RIGHT_SPEED * object_region_x), self.MAX_SPEED)
+
+            action = self.turn_right if object_region_x > 0 else self.turn_left
+            action(speed={'left': speed, 'right': speed})
+        elif object_region_y != 0:
+
+            speed = min(abs(self.MIN_FORWARD_BACKWARD_SPEED * object_region_y), self.MAX_SPEED)
+
+            action = self.move_backward if object_region_y > 0 else self.move_forward
+            action(speed=speed)
+        else:
+            self.stop()
 
     def stop(self):
         self.right_motor.stop()
