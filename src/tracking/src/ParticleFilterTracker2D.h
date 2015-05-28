@@ -17,8 +17,15 @@ public:
 	void generateNSamplesUniformly(int N, float range);
 	
 	int getSampleNumber();
+	int getPrevSampleNumber();
+	
 	cv::Point2f getSampleByIndex(int i);
 	float getSampleWeightByIndex(int i);
+	
+	
+	cv::Point2f getPrevSampleByIndex(int i);
+	float getPrevSampleWeightByIndex(int i);
+	
 	void setNewSampleNeighborhoodRadius(float radius);
 
 	// set p(z_k | x^i_k ). z_k is the observed value and x^i_k is the predicted sample location.
@@ -31,6 +38,7 @@ private:
 
 	cv::Point2f initialLocation;
 	std::vector<std::pair<cv::Point2f, float> > samples;
+	std::vector<std::pair<cv::Point2f, float> > oldSamples;
 	
 	// radius of the area where we generate new samples from an old sample ( the old sample is in the center ).
 	float newSampleNeighborhoodRadius;

@@ -79,13 +79,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     std::stringstream locationStrStream;
     
     if( location.x < 0 || location.y < 0){
-      locationStrStream << "x " << "NaN" << " , " << "y " << "NaN" << " , ";
+      //locationStrStream << "object_x " << "0" << " , " << "object_y " << "0" << " , ";
+      
+      locationStrStream << "object_x " << img.cols /2   << ", " << "object_y " << img.rows / 2 << ", ";
+      
     }else{
       // "x 10, y 10, width 360, height 640"
-      locationStrStream << "x " << location.x << " , " << "y " << location.y << " , ";
+      locationStrStream << "object_x " << location.x << ", " << "object_y " << location.y << ", ";
     }
 
-    locationStrStream << "width " << img.cols << " , " << "heigth " << img.rows;
+    locationStrStream << "width " << img.cols << ", " << "height " << img.rows << ", ";
+
+    locationStrStream << "direction follow" ;
     
     std_msgs::String locationMsg;
     locationMsg.data = locationStrStream.str();
@@ -185,7 +190,7 @@ int main(int argc, char **argv)
 
   pub = it.advertise("camera/tracking_image", 1);
   
-  location_pub = nh.advertise<std_msgs::String>("/object_location", 1);
+  location_pub = nh.advertise<std_msgs::String>("/car_control", 1);
   
   try{
     sub = it.subscribe("/camera/decomp_image", 5, imageCallback);

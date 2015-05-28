@@ -1,30 +1,25 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(tracking)
 
-message(STATUS ">>>>>> cmake prefix: ${CMAKE_SYSTEM_PREFIX_PATH}")
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  image_transport
+  compressed_image_transport
   cv_bridge
+  geometry_msgs
+  image_transport
+  #imge_transport_plugin
   roscpp
   rospy
   std_msgs
 )
 
-find_package(OpenCV 2.4 REQUIRED)
-
-if(OpenCV_FOUND)
-  message(STATUS ">>>>>> OpenCV found.")
-  message(STATUS "Opencv Iinclude Path: ${OpenCV_INCLUDE_DIRS}")
-endif()
-
-
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system)
+# find_package(Boost REQUIRED COMPONENTS system)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -79,7 +74,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   geometry_msgs#   std_msgs
 # )
 
 ###################################
@@ -94,7 +89,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES tracking
-  CATKIN_DEPENDS image_transport roscpp rospy std_msgs cv_bridge
+  CATKIN_DEPENDS compressed_image_transport cv_bridge geometry_msgs image_transport  roscpp rospy std_msgs # imge_transport_plugin
   DEPENDS system_lib
 )
 
@@ -123,18 +118,9 @@ add_executable(tracking_node src/listener.cpp src/utilities.cpp src/ParticleFilt
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tracking_node
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBS}
-   ${Boost_LIBS}
-   #/usr/lib/x86_64-linux-gnu/libopencv_core.so
-   #/usr/lib/x86_64-linux-gnu/libopencv_highgui.so
-   #/usr/lib/x86_64-linux-gnu/libopencv_imgproc.so
-   #/usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.so
- )
-
-#message(STATUS "${OpenCV_LIBS}")
-#message(STATUS "${CMAKE_MODULE_PATH}")
-
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  )
 
 #############
 ## Install ##
@@ -183,6 +169,3 @@ target_link_libraries(tracking_node
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
-
-SET(CMAKE_BUILD_TYPE debug)
