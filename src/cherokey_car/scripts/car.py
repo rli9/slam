@@ -72,6 +72,7 @@ class Car(object):
             self.lights = {"head": Car.EmptyLight(), "tail": Car.EmptyLight(), "left_turn": Car.EmptyLight(), "right_turn": Car.EmptyLight()}
 
         self.sub = rospy.Subscriber('car_control', String, callback=self.control_callback, queue_size=1)
+        self.pub = rospy.Publisher('car_feedback', String, queue_size=1)
 
         self.prev_object_region_x = None
         self.prev_object_region_y = None
@@ -120,7 +121,6 @@ class Car(object):
                 rospy.loginfo("\t\t%s" % ("\\\\//" if object_region_y > 0 else " ||"))
 
             # rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
-
         self.prev_object_region_x = object_region_x
         self.prev_object_region_y = object_region_y
         # Debug code end
@@ -135,13 +135,21 @@ class Car(object):
 
             delay(self.configs['turn_delay'])
             self.stop()
+
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("right" if object_region_x > 0 else "left")
         elif object_region_y != 0:
             speed = min(abs(self.MIN_FORWARD_BACKWARD_SPEED * object_region_y), self.MAX_SPEED)
 
             action = self.move_backward if object_region_y > 0 else self.move_forward
             action(speed=speed)
+
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("backward" if object_region_y > 0 else "forward")
         else:
             self.stop()
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("stop")
 
     def stop(self):
         self.right_motor.stop()
