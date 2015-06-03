@@ -62,7 +62,10 @@ class Car(object):
         else:
             self.lights = {"head": Car.EmptyLight(), "tail": Car.EmptyLight(), "left_turn": Car.EmptyLight(), "right_turn": Car.EmptyLight()}
 
-        self.sub = rospy.Subscriber('car_control', String, self.control_callback)
+        self.sub = rospy.Subscriber('car_control', String, callback=self.control_callback, queue_size=1)
+
+        self.prev_object_region_x = None
+        self.prev_object_region_y = None
 
     def control_callback(self, data):
         action = ','.join(["'%s':'%s'" % (part.strip().split(' ')[0], part.strip().split(' ')[1]) for part in data.data.split(',')])
@@ -103,18 +106,31 @@ class Car(object):
         object_region_x = ((int(args['object_x']) - half_width) + quater_width - tolerant_error_width) / quater_width
         object_region_y = ((int(args['object_y']) - half_height) + quater_height - tolerant_error_height) / quater_height
 
-        rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
+        # Debug code start
+        if self.prev_object_region_x is None or (self.prev_object_region_x != object_region_x or self.prev_object_region_y != object_region_y):
+            if object_region_x != 0:
+                rospy.loginfo("\t\t\t==>>" if object_region_x > 0 else "\t<<==")
+            elif object_region_y != 0:
+                rospy.loginfo("\t\t%s" % (" ||" if object_region_y > 0 else "//\\\\"))
+                rospy.loginfo("\t\t%s" % ("\\\\//" if object_region_y > 0 else " ||"))
+
+            # rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
+
+        self.prev_object_region_x = object_region_x
+        self.prev_object_region_y = object_region_y
+        # Debug code end
 
         # Adjust left/right direction until object is in center of x coordinate,
         # then adjust forward/backward
-
         if object_region_x != 0:
             speed = min(abs(self.MIN_LEFT_RIGHT_SPEED * object_region_x), self.MAX_SPEED)
 
             action = self.turn_right if object_region_x > 0 else self.turn_left
             action(speed={'left': speed, 'right': speed})
-        elif object_region_y != 0:
 
+            delay(200)
+            self.stop()
+        elif object_region_y != 0:
             speed = min(abs(self.MIN_FORWARD_BACKWARD_SPEED * object_region_y), self.MAX_SPEED)
 
             action = self.move_backward if object_region_y > 0 else self.move_forward
@@ -133,7 +149,7 @@ class Car(object):
 
         if 'speed' not in args:
             args["speed"] = 100
-        rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
+        # rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
 
         speed = int(args["speed"])
 
@@ -157,7 +173,7 @@ class Car(object):
 
         if 'speed' not in args:
             args["speed"] = {"left": 100, "right": 100}
-        rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
+        # rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
 
         left_speed = int(args["speed"]["left"])
         right_speed = int(args["speed"]["right"])
@@ -183,8 +199,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # log = logging.getLogger('pygalileo')
-    # log.setLevel(logging.INFO)
+    log = logging.getLogger('pygalileo')
+    log.setLevel(logging.WARN)
 
     rospy.init_node('car', log_level=rospy.INFO)
     rospy.loginfo('__main__ %s' % args)
