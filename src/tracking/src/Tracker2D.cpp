@@ -62,12 +62,36 @@ float Tracker2D::getSampleProbability(int sample_id)
 	/*
 	 *calculate the histogram of H value in the ROI
 	 */
-	cv::Mat roiMat(m_currentHSV, cv::Rect((int)(sample.x - m_trackerSize / 2), (int)(sample.y - m_trackerSize / 2), m_trackerSize, m_trackerSize));
+
+	int height = m_currentHSV.rows;
+	int width = m_currentHSV.cols;
+
+	// need to check the boundary
+	int leftUpX = (int)(sample.x - m_trackerSize /2 );
+	leftUpX = leftUpX < 0 ? 0: leftUpX;
+	
+	int leftUpY = (int)(sample.y - m_trackerSize /2 );
+	leftUpY = leftUpY < 0 ? 0 : leftUpY;
+	
+	int rightBottomX = (int)(sample.x + m_trackerSize / 2);
+	rightBottomX = rightBottomX >= width ? width - 1 : rightBottomX;
+	
+	int rightBottomY = (int)(sample.y + m_trackerSize / 2);
+	rightBottomY =  rightBottomY >= height ? height - 1 : rightBottomY;
+
+	int roiWidth = rightBottomX - leftUpX;
+	int roiHeight = rightBottomY - leftUpY;
+
+	if( roiWidth <= 5 && roiHeight <= 5){
+	  return 0.0f;
+	}
+
+	//cv::Mat roiMat(m_currentHSV, cv::Rect((int)(sample.x - m_trackerSize / 2), (int)(sample.y - m_trackerSize / 2), m_trackerSize, m_trackerSize));
+	cv::Mat roiMat(m_currentHSV, cv::Rect(leftUpX, leftUpY, roiWidth, roiHeight));
 
 	cv::Mat histforH;
 
 	calculateHueHistogram(roiMat, histforH);
-
 
 	//std::cout << "Sample feature: " << std::endl;
 	//std::cout << histforH << std::endl;
@@ -202,4 +226,37 @@ void Tracker2D::drawTrackers(cv::Mat & disp_img)
 		cv::Point2f leftUpConer(sample.x - m_trackerSize / 2, sample.y - m_trackerSize / 2);
 		cv::rectangle(disp_img, cv::Rect((int)leftUpConer.x, (int)leftUpConer.y, m_trackerSize, m_trackerSize), drawingColor);
 	}
+}
+
+cv::Point2i Tracker2D::getWeightedAverageLocation()
+{
+
+  // use the old samples
+
+  cv::Point2f averagePosition = cv::Point2f(0,0);
+
+  int sampleNum = m_particleFilterTracker.getPrevSampleNumber();
+  
+  float totalWeight = 0;
+
+  for(int i = 0; i < sampleNum; i ++){
+    float w = m_particleFilterTracker.getPrevSampleWeightByIndex(i);
+
+    cv::Point2f pt = m_particleFilterTracker.getPrevSampleByIndex(i);
+
+    // std::cout << "pt(" << pt.x << " , " << pt.y << ")" << " w = " << w << std::endl;
+
+    totalWeight += w;
+    averagePosition.x += pt.x * w;
+    averagePosition.y += pt.y * w;
+  }
+  
+  if( totalWeight <= 0){
+    return cv::Point2i(-1,-1);
+  }
+
+  averagePosition.x /= totalWeight;
+  averagePosition.y /= totalWeight;
+
+  return cv::Point2i((int)averagePosition.x, (int)averagePosition.y);
 }
