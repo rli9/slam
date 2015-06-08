@@ -51,18 +51,31 @@ class Car(object):
         def off(self):
             return
 
-    def __init__(self, light_pins):
-        rospy.loginfo('Car.__init__')
+    DEFAULT_TURN_DELAY = 200
+    MAX_SPEED = 100
+    DEFAULT_MIN_LEFT_RIGHT_SPEED = 80
+    MIN_FORWARD_BACKWARD_SPEED = 70
 
+    def __init__(self, light_pins, **configs):
         self.right_motor = Car.Motor(4, 5)
         self.left_motor = Car.Motor(7, 6)
+
+        self.configs = dict(turn_delay=self.DEFAULT_TURN_DELAY, min_turn_speed=self.DEFAULT_MIN_LEFT_RIGHT_SPEED)
+        for key in self.configs.keys():
+            self.configs[key] = configs[key] or self.configs[key]
+
+        rospy.loginfo('Car.__init__ %s' % self.configs)
 
         if light_pins is not None:
             self.lights = {"head": Car.Light(light_pins[0]), "tail": Car.Light(light_pins[1]), "left_turn": Car.Light(light_pins[2]), "right_turn": Car.Light(light_pins[3])}
         else:
             self.lights = {"head": Car.EmptyLight(), "tail": Car.EmptyLight(), "left_turn": Car.EmptyLight(), "right_turn": Car.EmptyLight()}
 
-        self.sub = rospy.Subscriber('car_control', String, self.control_callback)
+        self.sub = rospy.Subscriber('car_control', String, callback=self.control_callback, queue_size=1)
+        self.pub = rospy.Publisher('car_feedback', String, queue_size=1)
+
+        self.prev_object_region_x = None
+        self.prev_object_region_y = None
 
     def control_callback(self, data):
         action = ','.join(["'%s':'%s'" % (part.strip().split(' ')[0], part.strip().split(' ')[1]) for part in data.data.split(',')])
@@ -77,10 +90,6 @@ class Car(object):
         actions[direction](**action)
         # delay(3000)
         # self.stop()
-
-    MAX_SPEED = 100
-    MIN_LEFT_RIGHT_SPEED = 80
-    MIN_FORWARD_BACKWARD_SPEED = 70
 
     def follow(self, **args):
         if 'width' not in args:
@@ -103,24 +112,44 @@ class Car(object):
         object_region_x = ((int(args['object_x']) - half_width) + quater_width - tolerant_error_width) / quater_width
         object_region_y = ((int(args['object_y']) - half_height) + quater_height - tolerant_error_height) / quater_height
 
-        rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
+        # Debug code start
+        if self.prev_object_region_x is None or (self.prev_object_region_x != object_region_x or self.prev_object_region_y != object_region_y):
+            if object_region_x != 0:
+                rospy.loginfo("\t\t\t==>>" if object_region_x > 0 else "\t<<==")
+            elif object_region_y != 0:
+                rospy.loginfo("\t\t%s" % (" ||" if object_region_y > 0 else "//\\\\"))
+                rospy.loginfo("\t\t%s" % ("\\\\//" if object_region_y > 0 else " ||"))
+
+            # rospy.loginfo('Car.follow(object_region_x=%d, object_region_y=%d)' % (object_region_x, object_region_y))
+        self.prev_object_region_x = object_region_x
+        self.prev_object_region_y = object_region_y
+        # Debug code end
 
         # Adjust left/right direction until object is in center of x coordinate,
         # then adjust forward/backward
-
         if object_region_x != 0:
-            speed = min(abs(self.MIN_LEFT_RIGHT_SPEED * object_region_x), self.MAX_SPEED)
+            speed = min(abs(self.configs['min_turn_speed'] * object_region_x), self.MAX_SPEED)
 
             action = self.turn_right if object_region_x > 0 else self.turn_left
             action(speed={'left': speed, 'right': speed})
-        elif object_region_y != 0:
 
+            delay(self.configs['turn_delay'])
+            self.stop()
+
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("right" if object_region_x > 0 else "left")
+        elif object_region_y != 0:
             speed = min(abs(self.MIN_FORWARD_BACKWARD_SPEED * object_region_y), self.MAX_SPEED)
 
             action = self.move_backward if object_region_y > 0 else self.move_forward
             action(speed=speed)
+
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("backward" if object_region_y > 0 else "forward")
         else:
             self.stop()
+            # FIXME ugly design to put publish in follow()
+            self.pub.publish("stop")
 
     def stop(self):
         self.right_motor.stop()
@@ -133,7 +162,7 @@ class Car(object):
 
         if 'speed' not in args:
             args["speed"] = 100
-        rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
+        # rospy.loginfo('Car.move(%s, %s, %s)' % (direction, light, args))
 
         speed = int(args["speed"])
 
@@ -157,7 +186,7 @@ class Car(object):
 
         if 'speed' not in args:
             args["speed"] = {"left": 100, "right": 100}
-        rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
+        # rospy.loginfo('Car.move(%s, %s, %s, %s)' % (left_direction, right_direction, light, args))
 
         left_speed = int(args["speed"]["left"])
         right_speed = int(args["speed"]["right"])
@@ -180,15 +209,17 @@ class Car(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--light_pins', nargs=4, help='pins of lights system in sequence of head, tail, left turn and right turn')
+    parser.add_argument('--turn_delay', type=int, help='delay between starting turn left/right and stopping')
+    parser.add_argument('--min_turn_speed', type=int, help='speed of turn left/right')
 
     args = parser.parse_args()
 
-    # log = logging.getLogger('pygalileo')
-    # log.setLevel(logging.INFO)
+    log = logging.getLogger('pygalileo')
+    log.setLevel(logging.WARN)
 
     rospy.init_node('car', log_level=rospy.INFO)
     rospy.loginfo('__main__ %s' % args)
 
-    car = Car(args.light_pins)
+    car = Car(args.light_pins, turn_delay=args.turn_delay, min_turn_speed=args.min_turn_speed)
 
     rospy.spin()
