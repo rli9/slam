@@ -21,8 +21,7 @@ public:
 	
 	cv::Point2f getSampleByIndex(int i);
 	float getSampleWeightByIndex(int i);
-	
-	
+		
 	cv::Point2f getPrevSampleByIndex(int i);
 	float getPrevSampleWeightByIndex(int i);
 	
@@ -34,8 +33,17 @@ public:
 	// update all samples' weights before calling resample().
 	void resample();
 
+	void offsetAllSamples(float offset_x, float offset_y);
+	
+	void setLimit(float x_low, float x_high, float y_low, float y_high);
+	
 private:
-
+	
+	float xLowLimit;
+	float yLowLimit;
+	float xHighLimit;
+	float yHighLimit;
+		
 	cv::Point2f initialLocation;
 	std::vector<std::pair<cv::Point2f, float> > samples;
 	std::vector<std::pair<cv::Point2f, float> > oldSamples;

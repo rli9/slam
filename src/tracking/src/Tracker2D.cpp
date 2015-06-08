@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 
+
 Tracker2D::Tracker2D(cv::Point2f & init_location)
 {
 	initialize(init_location);
@@ -52,7 +53,7 @@ void Tracker2D::initialize(cv::Point2f  init_location, int tracker_size)
 	m_particleFilterTracker.setNewSampleNeighborhoodRadius(m_newSampleRange / 2);
 	m_particleFilterTracker.generateNSamplesUniformly(m_sampleNum, m_initialSampleRange);
 
-	std::cout << " Generate " << m_particleFilterTracker.getSampleNumber() << " samples" << std::endl;  
+	std::cout << "Generate " << m_particleFilterTracker.getSampleNumber() << " samples" << std::endl;  
 }
 
 float Tracker2D::getSampleProbability(int sample_id)
@@ -215,17 +216,28 @@ void Tracker2D::writeToVideo(cv::VideoWriter & writer)
 
 void Tracker2D::drawTrackers(cv::Mat & disp_img)
 {
-	int sampleNum = m_particleFilterTracker.getSampleNumber();
+  int sampleNum = m_particleFilterTracker.getPrevSampleNumber();
 
-	m_currentBGR.copyTo(disp_img);
-	cv::Scalar drawingColor(0, 0, 255);
+  m_currentBGR.copyTo(disp_img);
+  cv::Scalar drawingColor;
 
-	for (int i = 0; i < sampleNum; i++)
-	{
-		cv::Point2f sample = m_particleFilterTracker.getSampleByIndex(i);
-		cv::Point2f leftUpConer(sample.x - m_trackerSize / 2, sample.y - m_trackerSize / 2);
-		cv::rectangle(disp_img, cv::Rect((int)leftUpConer.x, (int)leftUpConer.y, m_trackerSize, m_trackerSize), drawingColor);
-	}
+  for (int i = 0; i < sampleNum; i++){
+    
+    cv::Point2f sample = m_particleFilterTracker.getPrevSampleByIndex(i);
+    float weight = m_particleFilterTracker.getPrevSampleWeightByIndex(i);
+    
+    if( weight < PROB_THRESHOD ){
+      drawingColor = cv::Scalar(0,0,255);
+    }
+    else{
+      drawingColor = cv::Scalar(0,255,0);
+    }
+    
+
+    cv::Point2f leftUpConer(sample.x - m_trackerSize / 2, sample.y - m_trackerSize / 2);
+    cv::rectangle(disp_img, cv::Rect((int)leftUpConer.x, (int)leftUpConer.y, m_trackerSize, m_trackerSize), drawingColor);
+
+  }
 }
 
 cv::Point2i Tracker2D::getWeightedAverageLocation()
@@ -259,4 +271,71 @@ cv::Point2i Tracker2D::getWeightedAverageLocation()
   averagePosition.y /= totalWeight;
 
   return cv::Point2i((int)averagePosition.x, (int)averagePosition.y);
+}
+
+int  Tracker2D::getNumOfSamplesHasProbLargerThan(float prob_threshold)
+{
+  int sampleNum = m_particleFilterTracker.getPrevSampleNumber();
+
+  int count = 0;
+
+  for(int i = 0 ; i < sampleNum; i ++){
+    
+    float prob = m_particleFilterTracker.getPrevSampleWeightByIndex(i);
+        
+    if( prob >= prob_threshold){
+      count ++;
+    }
+  }
+
+  return count;
+}
+
+int Tracker2D::getSampleNum(){
+  return m_particleFilterTracker.getPrevSampleNumber();
+}
+
+void Tracker2D::offsetTracker(int direction, int offset)
+{
+  int offsetX, offsetY;
+  bool offsetSet = false;
+
+  switch (direction){
+  
+  case TRACKER_UP:
+    offsetX = 0;
+    offsetY = - offset;
+    offsetSet = true;
+    break;
+
+  case TRACKER_DOWN:
+    offsetX = 0;
+    offsetY = offset;
+    offsetSet = true;
+    break;
+
+  case TRACKER_LEFT:
+    offsetX = -offset;
+    offsetY = 0;
+    offsetSet = true;
+    break;
+
+  case TRACKER_RIGHT:
+    offsetX = offset;
+    offsetY = 0;
+    offsetSet = true;
+    break;
+    
+  default:
+    break;
+  }
+  
+  if( offsetSet){
+    m_particleFilterTracker.offsetAllSamples(offsetX, offsetY);
+  }
+}
+
+void Tracker2D::setLimit(int x_low, int x_high, int y_low, int y_high)
+{
+  m_particleFilterTracker.setLimit((float)x_low, (float)x_high, (float)y_low, (float)y_high);
 }

@@ -1,8 +1,11 @@
 #include "ParticleFilterTracker2D.h"
 
+
+bool init_sampling = true;
+
 ParticleFilterTracker2D::ParticleFilterTracker2D()
 {
-
+  xLowLimit = yLowLimit = xHighLimit = yHighLimit = 0;
 }
 
 ParticleFilterTracker2D::~ParticleFilterTracker2D()
@@ -80,6 +83,7 @@ void ParticleFilterTracker2D::resample()
   //}
 
   samples = newSamples;
+
 }
 
 void ParticleFilterTracker2D::generateNSamplesUniformly(std::vector<std::pair<cv::Point2f, float> > & out, cv::Point2f center, float range, int N)
@@ -121,21 +125,34 @@ void ParticleFilterTracker2D::generateNSamplesUniformly(std::vector<std::pair<cv
   int count = 0;
   int randomRange = 100;
 
-  while (count < N)
-    {
-      float randomX = (float)(rand() % randomRange);
-      float randomY = (float)(rand() % randomRange);
+  while (count < N){
+    
+    float randomX = (float)(rand() % randomRange);
+    float randomY = (float)(rand() % randomRange);
+    
+    randomX = (randomX - randomRange * 1.0f / 2) / randomRange;
+    randomY = (randomY - randomRange * 1.0f / 2) / randomRange;
+    
+    float newX = center.x + randomX * range;
+    float newY = center.y + randomY * range;
 
-      randomX = (randomX - randomRange * 1.0f / 2) / randomRange;
-      randomY = (randomY - randomRange * 1.0f / 2) / randomRange;
+    if( init_sampling)
+      std::cout << "new sample: (" << newX << "," << newY << ")" << std::endl;
+    
+    newX = newX <= xLowLimit ? xLowLimit : newX;
+    newX = newX >= xHighLimit ? xHighLimit : newX;
+    newY = newY <= yLowLimit ? yLowLimit : newY;
+    newY = newY >= yHighLimit ? yHighLimit : newY;
 
-      float newX = center.x + randomX * range;
-      float newY = center.y + randomY * range;
+    if( init_sampling)
+      std::cout << "new sample (after adjusted): (" << newX << "," << newY << ")" << std::endl;
+    
+    out.push_back((std::pair<cv::Point2f, float>(cv::Point2f(newX, newY), 0.0f)));
 
-      out.push_back((std::pair<cv::Point2f, float>(cv::Point2f(newX, newY), 0.0f)));
+    count++;
+  }
 
-      count++;
-    }
+  
 }
 
 void ParticleFilterTracker2D::setInitialLocation(cv::Point2f location)
@@ -146,6 +163,7 @@ void ParticleFilterTracker2D::setInitialLocation(cv::Point2f location)
 void ParticleFilterTracker2D::generateNSamplesUniformly(int N, float range)
 {
   generateNSamplesUniformly(samples, initialLocation, range, N);
+  if( init_sampling) init_sampling = false;
 }
 
 int ParticleFilterTracker2D::getSampleNumber()
@@ -196,3 +214,29 @@ void ParticleFilterTracker2D::sortSamples()
 {
   std::sort(samples.begin(), samples.end(), compareTwoSample);
 }
+
+void ParticleFilterTracker2D::offsetAllSamples(float offset_x, float offset_y)
+{
+  for(int i = 0; i < samples.size(); i ++){
+    
+    float x = samples.at(i).first.x + offset_x;
+    float y = samples.at(i).first.y + offset_y;
+
+    x = x <= xLowLimit ? xLowLimit : x;
+    y = y <= yLowLimit ? yLowLimit : y;
+    x = x >= xHighLimit ? xHighLimit : x;
+    y = y >= yHighLimit ? yHighLimit : y;
+
+    samples.at(i).first = cv::Point2f(x,y);
+
+  }
+}
+
+void ParticleFilterTracker2D::setLimit(float x_low, float x_high, float y_low, float y_high)
+{
+  xLowLimit = x_low;
+  xHighLimit = x_high;
+  yLowLimit = y_low;
+  yHighLimit = y_high;
+}
+
