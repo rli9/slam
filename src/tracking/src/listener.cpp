@@ -137,6 +137,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     }else{
       // "x 10, y 10, width 360, height 640"
       locationStrStream << "object_x " << location.x << ", " << "object_y " << location.y << ", ";
+      lastMovementDirection = -1;
     }
 
     locationStrStream << "width " << img.cols << ", " << "height " << img.rows << ", ";
