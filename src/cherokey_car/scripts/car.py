@@ -5,7 +5,7 @@ roslib.load_manifest('cherokey_car')
 
 import rospy
 import logging
-from pygalileo.arduino import *
+from pyquark.arduino import *
 from std_msgs.msg import String
 
 import argparse
@@ -214,7 +214,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    log = logging.getLogger('pygalileo')
+    log = logging.getLogger('pyquark')
     log.setLevel(logging.WARN)
 
     rospy.init_node('car', log_level=rospy.INFO)
