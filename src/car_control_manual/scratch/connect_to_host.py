@@ -1,3 +1,6 @@
+# -*- encoding: utf-8 -*-
+from __future__ import print_function
+
 __author__ = 'Simon Zheng'
 
 """Transfer command data from scratch to linux host
@@ -7,12 +10,54 @@ import socket
 
 
 class Server(object):
-    pass
+    def __init__(self, host='', port=50007):
+        self.host = host
+        self.port = port
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.bind((self.host, self.port))
+        self.conn = None  # received socket connection
+        self.address = None  # bind socket address
+
+    def listen(self, maxinum=1, buffer=1024):
+        self.s.listen(maxinum)
+        self.conn, self.address = self.s.accept()
+        print('Connected by', self.address)
+        while True:
+            data = self.conn.recv(buffer)
+            if not data: break
+            self.conn.sendall("ok")
+
+    def close(self):
+        self.conn.close()
 
 
 class Client(object):
-    pass
+    def __init__(self, remote_host, port):
+        self.host = remote_host
+        self.port = port
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def connect(self):
+        self.s.connect((self.host, self.port))
+
+    def send(self, msg):
+        self.s.sendall(msg)
+        data = self.s.recv(1024)
+        return data
+
+    def close(self):
+        self.s.close()
 
 
 if __name__ == "__main__":
-    pass
+    host = '192.168.1.219'
+    port = 50007
+
+    cli = Client(host,port)
+    cli.connect()
+    res = cli.send("test msg socket")
+
+    if res == "ok":
+        print("test ok")
+
+    cli.close()
