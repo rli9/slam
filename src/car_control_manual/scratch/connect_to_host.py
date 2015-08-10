@@ -50,14 +50,22 @@ class Client(object):
 
 
 if __name__ == "__main__":
-    host = '192.168.1.219'
-    port = 50007
+    import os
 
-    cli = Client(host,port)
-    cli.connect()
-    res = cli.send("test msg socket")
+    if os.getenv('ENV', None) == 'client' or os.getenv('ENV', None) == None:
+        host = '192.168.1.219'
+        port = 50007
 
-    if res == "ok":
-        print("test ok")
+        cli = Client(host, port)
+        cli.connect()
+        res = cli.send("Test msg socket")
+        if res == "ok":
+            print("test ok")
 
-    cli.close()
+        cli.close()
+    elif os.getenv('ENV', None) == 'server':
+        ser = Server()
+        ser.listen()
+        ser.close()
+    else:
+        print("Please set your EVN var of system")
