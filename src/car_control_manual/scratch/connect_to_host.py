@@ -40,8 +40,9 @@ class Client(object):
     def connect(self):
         self.s.connect((self.host, self.port))
 
-    def send(self, msg):
+    def send(self, msg, *args, **kwargs):
         self.s.sendall(msg)
+        print("Send msg %s" % (msg))
         data = self.s.recv(1024)
         return data
 

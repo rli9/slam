@@ -30,11 +30,13 @@ class MyFileMonitor(watchdog.events.FileSystemEventHandler):
 
 
 class WatchFile(object):
-    def __init__(self, *argv, **kargv):
+    def __init__(self, send_msg_func, *argv, **kargv):
         self.path = kargv['path'] if kargv.has_key('path') else '.'
         self.suffix = kargv['suffix'] if kargv.has_key('suffix') else '*'  # star represent any file
         self.observer = Observer()
         self.event_handler = MyFileMonitor(self.suffix, callback=self.get_data)
+        self.send_msg_func = send_msg_func
+        self.filename = self.zip_filename = ''
 
     def run(self):
         self.observer.schedule(self.event_handler, self.path, recursive=True)
@@ -47,7 +49,10 @@ class WatchFile(object):
         self.observer.join()
 
     def get_data(self, filename):
-        return self._unpack(filename)
+        data = self._unpack(filename)
+        data = str(data)
+        print(data, type(data))
+        self.send_msg_func(data)
 
     def _unpack(self, filename):
         # first rename suffix to zip file
@@ -58,10 +63,12 @@ class WatchFile(object):
         new_name = new_name[1:] if new_name.startswith('\\') else new_name
 
         print('Old name:', filename, ' New name:', new_name)
+
+        self.filename = filename
+        self.zip_filename = new_name
         # waiting for operating sys create the file
         time.sleep(3)
         os.rename(filename, new_name)
-
         zip_file = zipfile.ZipFile(new_name, 'r')
         json_data = ""
         for name in zip_file.namelist():
