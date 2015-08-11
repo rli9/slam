@@ -1,16 +1,20 @@
 #!/usr/bin/python
 __author__ = 'flex'
 
-import roslib, rospy
-import logging,functools
-from pyquark.arduino import *
-from std_msgs.msg import String
-from car_control_manual.msg import CarControlMsg
 import argparse
+
+import rospy
+from pyquark.arduino import *
+from car_control_manual.msg import CarControlMsg
 
 
 def method_partial(func, *partial_args):
     return lambda self, *args, **kwargs: func(self, *(partial_args + args), **kwargs)
+
+
+'''
+command example : [[97, 36, [[u'forward:', 10], [u'turnRight:', 15], [u'turnLeft:', 15]]]]
+'''
 
 
 class Car(object):
@@ -49,15 +53,15 @@ class Car(object):
     MIN_FORWARD_BACKWARD_SPEED = 70
 
     def __init__(self, light_pins, **configs):
-        self.right_motor = Car.Motor(4,5)
-        self.left_motor = Car.Motor(7,6)
+        self.right_motor = Car.Motor(4, 5)
+        self.left_motor = Car.Motor(7, 6)
 
         self.configs = dict(turn_delay=self.DEFAULT_TURN_DELAY, min_turn_speed=self.DEFAULT_MIN_LEFT_RIGHT_SPEED)
 
         for key in self.configs.keys():
             self.configs[key] = configs[key] or self.configs[key]
 
-        self.sub = rospy.Subscriber('car_control_manual', CarControlMsg, callback = self.control_callback, queue_size = 10 )
+        self.sub = rospy.Subscriber('car_control_manual', CarControlMsg, callback=self.control_callback, queue_size=10)
 
         self.prev_object_region_x = None
         self.prev_object_region_y = None
@@ -94,7 +98,7 @@ class Car(object):
         self.right_motor.run(direction, speed)
 
         if 'distance' in args:
-            ms = float(args['distance'])/speed
+            ms = float(args['distance']) / speed
             delay(ms)
             self.stop()
 
@@ -105,20 +109,20 @@ class Car(object):
         if 'speed' not in args:
             args['speed'] = dict(left=100, right=100)
 
-        left_speed = int( args['speed']['left'])
-        right_speed = int( args['speed']['right'])
+        left_speed = int(args['speed']['left'])
+        right_speed = int(args['speed']['right'])
 
         self.left_motor.run(left_direction, left_speed)
         self.right_motor.run(right_direction, right_speed)
 
         if 'rotation' in args:
-            ms = int(args['rotation'])/ ( (left_speed + right_speed) / 2)
+            ms = int(args['rotation']) / ((left_speed + right_speed) / 2)
             delay(ms)
             self.stop()
 
-
     turn_left = method_partial(turn, LOW, HIGH)
     turn_right = method_partial(turn, HIGH, LOW)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -130,5 +134,5 @@ if __name__ == "__main__":
     rospy.init_node('car', log_level=rospy.INFO)
     rospy.loginfo('__main__ %s' % args)
 
-    car = Car(args.light_pins, turn_delay = args.turn_delay, min_turn_speed = args.min_turn_speed )
+    car = Car(args.light_pins, turn_delay=args.turn_delay, min_turn_speed=args.min_turn_speed)
     rospy.spin()

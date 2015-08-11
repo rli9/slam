@@ -7,7 +7,8 @@ import connect_to_host as connect
 import watch_file as wf
 import socket
 
-Host = "192.168.1.219"
+# Host = "192.168.1.219"
+Host = "127.0.0.1"
 Port = 50007
 
 
@@ -15,11 +16,13 @@ def client_main():
     cli = connect.Client(remote_host=Host, port=Port)
     try:
         cli.connect()
+        wd = wf.WatchFile(suffix=".sb2", send_msg_func=cli.send)
+        wd.run()
     except socket.error, e:
-        print(e)
-
-    wd = wf.WatchFile(suffix=".sb2", send_msg_func=cli.send)
-    wd.run()
+        print("Error ", e)
+        print("Just for test")
+        wd = wf.WatchFile(suffix=".sb2", send_msg_func=wf.send_msg_test_func)
+        wd.run()
 
 
 def server_main():

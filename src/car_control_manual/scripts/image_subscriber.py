@@ -1,18 +1,16 @@
 #!/usr/bin/python
 
 
-import roslib, rospy
-import sys
+import rospy
 import cv2
 
-
 from std_msgs.msg import String
-from sensor_msgs.msg import Image, CompressedImage
 from rospy.numpy_msg import numpy_msg
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
-class image_converter:
+
+class ImageConverter:
     def __init__(self):
         cv2.namedWindow('Image window', 1)
         self.bridge = CvBridge()
@@ -27,7 +25,7 @@ class image_converter:
             print e
 
 
-class image_receiver(object):
+class ImageReceiver(object):
     def __init__(self):
         cv2.namedWindow('Image window', 1)
         # self.bridge = CvBridge()
@@ -47,8 +45,8 @@ class image_receiver(object):
 
 
 def main():
-    ir = image_receiver()
-    rospy.init_node('image_convert', anonymous = True)
+    ir = ImageReceiver()
+    rospy.init_node('image_convert', anonymous=True)
 
     try:
         rospy.spin()

@@ -83,10 +83,10 @@ class WatchFile(object):
         return scripts
 
 
+def send_msg_test_func(msg):
+    print("send msg ok %s" % msg)
+
+
 if __name__ == "__main__":
-    def send_msg_func(msg):
-        print("send msg ok %s" % msg)
-
-
-    wd = WatchFile(send_msg_func, suffix=".sb2")
+    wd = WatchFile(send_msg_test_func, suffix=".sb2")
     wd.run()

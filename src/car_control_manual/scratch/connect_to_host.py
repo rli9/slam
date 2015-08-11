@@ -9,6 +9,30 @@ __author__ = 'Simon Zheng'
 import socket
 
 
+def check_format(func):
+    cmds = ['forward:', 'turnRight:', 'turnLeft:']
+
+    def wrapped(*args, **kargs):
+        self = args[0]
+        msg = eval(kargs['msg'])[0][2]
+        print("Received Msg %s" % msg)
+        # the first two args is position in scratch
+        cmd_map = {}
+        for cmd in msg:
+            print("Cmd %s , Value %s" % (cmd[0], cmd[1]))
+            if cmd[0] not in cmds:
+                print("cmd error, we don't have", cmd)
+                return 'cmd error'
+            else:
+                # remove the :
+                cmd_map[cmd[0][:-1]] = cmd[1]
+        print("Get Cmd Map ", cmd_map)
+        func(self, cmd_map)
+        print('Cmd publish DONE')
+
+    return wrapped
+
+
 class Server(object):
     def __init__(self, host='', port=50007):
         self.host = host
@@ -19,13 +43,24 @@ class Server(object):
         self.address = None  # bind socket address
 
     def listen(self, maxinum=1, buffer=1024):
+        '''
+        data format [[97, 36, [[u'forward:', 10], [u'turnRight:', 15], [u'turnLeft:', 15]]]]
+        :param maxinum: max num to listen
+        :param buffer: receive msg buffer
+        :return: None
+        '''
         self.s.listen(maxinum)
         self.conn, self.address = self.s.accept()
         print('Connected by', self.address)
         while True:
             data = self.conn.recv(buffer)
-            if not data: break
+            if data:
+                self.publish_cmd(msg=data)
             self.conn.sendall("ok")
+
+    @check_format
+    def publish_cmd(self, cmd_dict):
+        print("In function %s, %s" % (self.publish_cmd.__name__, cmd_dict))
 
     def close(self):
         self.conn.close()
