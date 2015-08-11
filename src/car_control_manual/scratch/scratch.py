@@ -9,8 +9,23 @@ import watch_file as wf
 Host = "192.168.1.219"
 Port = 50007
 
-if __name__ == "__main__":
+
+def client_main():
     cli = connect.Client(remote_host=Host, port=Port)
     cli.connect()
     wd = wf.WatchFile(suffix=".sb2", send_msg_func=cli.send)
     wd.run()
+
+
+def server_main():
+    ser = connect.Server()
+    ser.listen()
+
+
+if __name__ == "__main__":
+    import sys
+
+    if sys.argv[1] == 'client':
+        client_main()
+    elif sys.argv[1] == 'server':
+        server_main()

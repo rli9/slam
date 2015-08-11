@@ -53,7 +53,7 @@ class Client(object):
 if __name__ == "__main__":
     import os
 
-    if os.getenv('ENV', None) == 'client' or os.getenv('ENV', None) == None:
+    if os.getenv('ENV', None) == 'client' or not os.getenv('ENV', None):
         host = '192.168.1.219'
         port = 50007
 
