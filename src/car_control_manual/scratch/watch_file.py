@@ -6,10 +6,9 @@ from __future__ import print_function
     3. unzip *.zip file and read json data from project.json
 """
 
-import sys, time, logging, os, zipfile, json
+import time, os, zipfile, json
 import watchdog
 from watchdog.observers import Observer
-from watchdog.events import LoggingEventHandler
 
 
 class MyFileMonitor(watchdog.events.FileSystemEventHandler):
@@ -30,9 +29,9 @@ class MyFileMonitor(watchdog.events.FileSystemEventHandler):
 
 
 class WatchFile(object):
-    def __init__(self, send_msg_func, *argv, **kargv):
-        self.path = kargv['path'] if kargv.has_key('path') else '.'
-        self.suffix = kargv['suffix'] if kargv.has_key('suffix') else '*'  # star represent any file
+    def __init__(self, send_msg_func, *args, **kargs):
+        self.path = kargs['path'] if kargs.has_key('path') else '.'
+        self.suffix = kargs['suffix'] if kargs.has_key('suffix') else '*'  # star represent any file
         self.observer = Observer()
         self.event_handler = MyFileMonitor(self.suffix, callback=self.get_data)
         self.send_msg_func = send_msg_func
@@ -85,5 +84,9 @@ class WatchFile(object):
 
 
 if __name__ == "__main__":
-    wd = WatchFile(suffix=".sb2")
+    def send_msg_func(msg):
+        print("send msg ok %s" % msg)
+
+
+    wd = WatchFile(send_msg_func, suffix=".sb2")
     wd.run()

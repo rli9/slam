@@ -5,6 +5,7 @@ __author__ = 'Simon Zheng'
 
 import connect_to_host as connect
 import watch_file as wf
+import socket
 
 Host = "192.168.1.219"
 Port = 50007
@@ -12,7 +13,11 @@ Port = 50007
 
 def client_main():
     cli = connect.Client(remote_host=Host, port=Port)
-    cli.connect()
+    try:
+        cli.connect()
+    except socket.error, e:
+        print(e)
+
     wd = wf.WatchFile(suffix=".sb2", send_msg_func=cli.send)
     wd.run()
 
