@@ -5,7 +5,7 @@ import argparse
 
 import rospy
 from pyquark.arduino import *
-from car_control_manual.msg import CarControlMsg
+from std_msgs.msg import String
 
 
 def method_partial(func, *partial_args):
@@ -61,7 +61,7 @@ class Car(object):
         for key in self.configs.keys():
             self.configs[key] = configs[key] or self.configs[key]
 
-        self.sub = rospy.Subscriber('car_control_manual', CarControlMsg, callback=self.control_callback, queue_size=10)
+        self.sub = rospy.Subscriber('car_control_manual', String, callback=self.control_callback, queue_size=10)
 
         self.prev_object_region_x = None
         self.prev_object_region_y = None
@@ -70,53 +70,59 @@ class Car(object):
         # direct_x : -1 :left , 1: right
         # direct_y : -1 :back , 1: forward
         # you can not turn and move in the same time now...
+        action = {u'forward': self.move_forward, u'turnRight': self.turn_right, u'turnLeft': self.turn_left}
+        # Get action from scratch by using
+        actions = eval(data)
 
-        direct_x = data.x
-        direct_y = data.y
+        direction = actions.pop('direction')
+        action[direction](**actions)
 
-        if direct_x == 1:
-            self.turn_right()
-        elif direct_x == -1:
-            self.turn_left()
-        elif direct_y == 1:
-            self.move_forward(speed=10)
-        elif direct_y == -1:
-            self.move_backward(speed=10)
-        else:
-            self.stop()
+        # direct_x = data.x
+        # direct_y = data.y
+        #
+        # if direct_x == 1:
+        #     self.turn_right()
+        # elif direct_x == -1:
+        #     self.turn_left()
+        # elif direct_y == 1:
+        #     self.move_forward(speed=10)
+        # elif direct_y == -1:
+        #     self.move_backward(speed=10)
+        # else:
+        #     self.stop()
 
     def stop(self):
         self.right_motor.stop()
         self.left_motor.stop()
 
-    def move(self, direction, **args):
-        if 'speed' not in args:
-            args['speed'] = 100
+    def move(self, direction, **kargs):
+        if 'speed' not in kargs:
+            kargs['speed'] = 100
 
-        speed = int(args['speed'])
+        speed = int(kargs['speed'])
         self.left_motor.run(direction, speed)
         self.right_motor.run(direction, speed)
 
-        if 'distance' in args:
-            ms = float(args['distance']) / speed
+        if 'distance' in kargs:
+            ms = float(kargs['distance']) / speed
             delay(ms)
             self.stop()
 
     move_forward = method_partial(move, LOW)
     move_backward = method_partial(move, HIGH)
 
-    def turn(self, left_direction, right_direction, **args):
-        if 'speed' not in args:
-            args['speed'] = dict(left=100, right=100)
+    def turn(self, left_direction, right_direction, **kargs):
+        if 'speed' not in kargs:
+            kargs['speed'] = dict(left=100, right=100)
 
-        left_speed = int(args['speed']['left'])
-        right_speed = int(args['speed']['right'])
+        left_speed = int(kargs['speed']['left'])
+        right_speed = int(kargs['speed']['right'])
 
         self.left_motor.run(left_direction, left_speed)
         self.right_motor.run(right_direction, right_speed)
 
-        if 'rotation' in args:
-            ms = int(args['rotation']) / ((left_speed + right_speed) / 2)
+        if 'rotation' in kargs:
+            ms = int(kargs['rotation']) / ((left_speed + right_speed) / 2)
             delay(ms)
             self.stop()
 

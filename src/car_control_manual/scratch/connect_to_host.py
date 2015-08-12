@@ -60,7 +60,8 @@ class Server(object):
 
     @check_format
     def publish_cmd(self, cmd_dict):
-        print("In function %s, %s" % (self.publish_cmd.__name__, cmd_dict))
+        for key, value in cmd_dict.items():
+            print(key, value)
 
     def close(self):
         self.conn.close()
