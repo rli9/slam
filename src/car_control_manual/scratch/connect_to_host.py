@@ -41,6 +41,7 @@ class Server(object):
         self.s.bind((self.host, self.port))
         self.conn = None  # received socket connection
         self.address = None  # bind socket address
+        self.pub = rospy.Publiser('car_control_manual', String, queue_size=1)
 
     def listen(self, maxinum=1, buffer=1024):
         '''
@@ -61,8 +62,7 @@ class Server(object):
     @check_format
     def publish_cmd(self, cmd_dict):
         for key, value in cmd_dict.items():
-            print(key, value)
-
+            self.pub.publish(key+":"+str(value))
     def close(self):
         self.conn.close()
 
@@ -101,6 +101,7 @@ if __name__ == "__main__":
 
         cli.close()
     elif os.getenv('ENV', None) == 'server':
+        rospy.init_node('car_control_scratch', log_level=rospy.INFO)
         ser = Server()
         ser.listen()
         ser.close()

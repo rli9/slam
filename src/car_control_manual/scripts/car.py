@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 __author__ = 'flex'
 
 import argparse
@@ -73,7 +74,7 @@ class Car(object):
         action = {u'forward': self.move_forward, u'turnRight': self.turn_right, u'turnLeft': self.turn_left}
         # Get action from scratch by using
         actions = eval(data)
-
+        print( "Received action" , actions)
         direction = actions.pop('direction')
         action[direction](**actions)
 
@@ -132,7 +133,7 @@ class Car(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--light_pins', nargs=4, help='pins of lights system in sequence of head, tail, left turn and right turn')
+    parser.add_argument('--light_pins', nargs=4, help='pins of lights system in sequence of head, tail, left turn and right turn')
     parser.add_argument('--turn_delay', type=int, help='delay between starting turn left/right and stopping')
     parser.add_argument('--min_turn_speed', type=int, help='speed of turn left/right')
 
@@ -140,5 +141,5 @@ if __name__ == "__main__":
     rospy.init_node('car', log_level=rospy.INFO)
     rospy.loginfo('__main__ %s' % args)
 
-    car = Car(args.light_pins, turn_delay=args.turn_delay, min_turn_speed=args.min_turn_speed)
+    car = Car( light_pins=args.light_pins, turn_delay=args.turn_delay, min_turn_speed=args.min_turn_speed)
     rospy.spin()

@@ -6,11 +6,13 @@ __author__ = 'Simon Zheng'
 import connect_to_host as connect
 import watch_file as wf
 import socket
+import os
 
-# Host = "192.168.1.219"
-Host = "127.0.0.1"
+Host = os.environ.get('SCRATCH_HOST')
+#Host = "127.0.0.1"
 Port = 50007
 
+print("Host %s, PORT %s" %(Host, Port))
 
 def client_main():
     cli = connect.Client(remote_host=Host, port=Port)
