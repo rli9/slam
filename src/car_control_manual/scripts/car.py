@@ -7,6 +7,7 @@ import argparse
 import rospy
 from pyquark.arduino import *
 from std_msgs.msg import String
+import Queue
 
 
 def method_partial(func, *partial_args):
@@ -61,36 +62,27 @@ class Car(object):
 
         for key in self.configs.keys():
             self.configs[key] = configs[key] or self.configs[key]
-
+        self.que = Queue.Queue()
+        self.actions = {u'forward': self.move_forward, u'turnRight': self.turn_right, u'turnLeft': self.turn_left}
         self.sub = rospy.Subscriber('car_control_manual', String, callback=self.control_callback, queue_size=10)
 
         self.prev_object_region_x = None
         self.prev_object_region_y = None
 
-    def control_callback(self, data):
-        # direct_x : -1 :left , 1: right
-        # direct_y : -1 :back , 1: forward
-        # you can not turn and move in the same time now...
-        action = {u'forward': self.move_forward, u'turnRight': self.turn_right, u'turnLeft': self.turn_left}
-        # Get action from scratch by using
-        actions = eval(data)
-        print( "Received action" , actions)
-        direction = actions.pop('direction')
-        action[direction](**actions)
 
-        # direct_x = data.x
-        # direct_y = data.y
-        #
-        # if direct_x == 1:
-        #     self.turn_right()
-        # elif direct_x == -1:
-        #     self.turn_left()
-        # elif direct_y == 1:
-        #     self.move_forward(speed=10)
-        # elif direct_y == -1:
-        #     self.move_backward(speed=10)
-        # else:
-        #     self.stop()
+    def liner_callback(self,data):
+        pass
+
+
+
+    def control_callback(self, data):
+        # you can not turn and move in the same time now...
+        print("Received From Host %s, Type: %s" %(data, type(data)))
+        direction, params = data.data.split(':')
+
+        action = {'distance': params, 'rotation': params}
+        self.actions[direction](**action)
+
 
     def stop(self):
         self.right_motor.stop()
@@ -106,7 +98,9 @@ class Car(object):
 
         if 'distance' in kargs:
             ms = float(kargs['distance']) / speed
+            print('Distance: %s , Delayed: %s' %(kargs['distance'], ms))
             delay(ms)
+            print('Move done.')
             self.stop()
 
     move_forward = method_partial(move, LOW)
@@ -124,6 +118,7 @@ class Car(object):
 
         if 'rotation' in kargs:
             ms = int(kargs['rotation']) / ((left_speed + right_speed) / 2)
+            print('Rotation: %s , Delayed: %s' %(kargs['rotation'], ms))
             delay(ms)
             self.stop()
 

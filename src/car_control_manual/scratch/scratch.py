@@ -7,10 +7,9 @@ import connect_to_host as connect
 import watch_file as wf
 import socket
 import os
-
+import rospy
 Host = os.environ.get('SCRATCH_HOST')
-#Host = "127.0.0.1"
-Port = 50007
+Port = os.environ.get('SCRATCH_PORT') or 50007
 
 print("Host %s, PORT %s" %(Host, Port))
 

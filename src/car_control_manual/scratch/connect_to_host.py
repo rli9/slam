@@ -7,6 +7,13 @@ __author__ = 'Simon Zheng'
 """
 
 import socket
+from std_msgs.msg import String
+import rospy
+
+try:
+    from pyquark.arduino import *
+except:
+    print("Module Not Found : pyquark.ardunio")
 
 
 def check_format(func):
@@ -41,7 +48,8 @@ class Server(object):
         self.s.bind((self.host, self.port))
         self.conn = None  # received socket connection
         self.address = None  # bind socket address
-        self.pub = rospy.Publiser('car_control_manual', String, queue_size=1)
+        rospy.init_node('car_control_scratch', log_level=rospy.INFO)
+        self.pub = rospy.Publisher('car_control_manual', String, queue_size=100)
 
     def listen(self, maxinum=1, buffer=1024):
         '''
@@ -50,19 +58,22 @@ class Server(object):
         :param buffer: receive msg buffer
         :return: None
         '''
-        self.s.listen(maxinum)
-        self.conn, self.address = self.s.accept()
-        print('Connected by', self.address)
         while True:
-            data = self.conn.recv(buffer)
-            if data:
-                self.publish_cmd(msg=data)
-            self.conn.sendall("ok")
+            self.s.listen(maxinum)
+            self.conn, self.address = self.s.accept()
+            print('Connected by', self.address)
+            while True:
+                data = self.conn.recv(buffer)
+                if data:
+                    print("Raw Data : ", data)
+                    self.publish_cmd(msg=data)
+                self.conn.sendall("ok")
 
     @check_format
     def publish_cmd(self, cmd_dict):
         for key, value in cmd_dict.items():
             self.pub.publish(key+":"+str(value))
+            print("Published %s" % key+":"+str(value))
     def close(self):
         self.conn.close()
 
@@ -101,7 +112,6 @@ if __name__ == "__main__":
 
         cli.close()
     elif os.getenv('ENV', None) == 'server':
-        rospy.init_node('car_control_scratch', log_level=rospy.INFO)
         ser = Server()
         ser.listen()
         ser.close()
