@@ -5,7 +5,7 @@
 //#include <boost/function.hpp>
 //#include <boost/bind.hpp>
 //#include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
+//#include <boost/thread/mutex.hpp>
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -16,9 +16,29 @@
 #include <iostream>
 #include <cmath>
 #include <std_msgs/String.h>
+#include <vector>
+#include <sstream>
 
 
 #define PRINT_ROS_INFO
+
+/*****************************************************************************************************/
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+/*****************************************************************************************************/
+
 
 bool objectSpecified = false;
 bool startTracking = false;
@@ -27,6 +47,12 @@ Tracker2D *  tracker = NULL;
 
 // the tracker size.
 int trackerSize = 10;
+
+int leftTopX = 10;
+int leftTopY = 10;
+int width = 100;
+int height = 100;
+
 
 // publish tracking images.
 image_transport::Publisher pub;
@@ -37,7 +63,7 @@ ros::Publisher location_pub;
 int trackerMaxSize = -1;
 
 // lock for the tracker.
-boost::mutex trackerMutex;
+//boost::mutex trackerMutex;
 
 // the direction of the object's last movement.
 int lastMovementDirection = -1;
@@ -66,7 +92,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
 
   if( startTracking ){
 
-    trackerMutex.lock();
+    //trackerMutex.lock();
 
 #ifdef PRINT_ROS_INFO
 
@@ -149,7 +175,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     location_pub.publish(locationMsg);
         
     // release the lock
-    trackerMutex.unlock();
+    //trackerMutex.unlock();
 
   }
 
@@ -167,8 +193,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     }
     
     ROS_INFO("Drawing tracker ... ");
-
-    cv::rectangle(tempImage, cv::Rect(tempImage.cols / 2 - trackerSize / 2, tempImage.rows / 2 - trackerSize / 2, trackerSize, trackerSize), cv::Scalar(0,0,255));
+    
+    //cv::rectangle(tempImage, cv::Rect(tempImage.cols / 2 - trackerSize / 2, tempImage.rows / 2 - trackerSize / 2, trackerSize, trackerSize), cv::Scalar(0,0,255));
+    cv::rectangle(tempImage, cv::Rect(leftTopX, leftTopY, trackerSize, trackerSize), cv::Scalar(0,0,255));
     
     // republish this image.
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", tempImage).toImageMsg();
@@ -178,7 +205,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
   
   else{
 
-    trackerMutex.lock();
+    //trackerMutex.lock();
     
     // haven't started tracking, but the initial object is specified.
     // create a tracker;
@@ -187,40 +214,63 @@ void imageCallback(const sensor_msgs::ImageConstPtr & msg){
     tracker = new Tracker2D();
 
     tracker->setLimit(5 , img.cols - 5, 5 , img.rows - 5);
-    tracker->initialize(cv::Point2f(img.cols / 2, img.rows / 2), trackerSize);
+    
+    //tracker->initialize(cv::Point2f(img.cols / 2, img.rows / 2), trackerSize);
+    tracker->initialize(cv::Point2f(leftTopX + trackerSize / 2, leftTopY + trackerSize / 2), trackerSize);
     
     // set object feature.
-    cv::Mat objImage = img(cv::Rect(img.cols / 2 - trackerSize /2, img.rows / 2 - trackerSize /2, trackerSize, trackerSize));
+    //cv::Mat objImage = img(cv::Rect(img.cols / 2 - trackerSize /2, img.rows / 2 - trackerSize /2, trackerSize, trackerSize));
+    cv::Mat objImage = img(cv::Rect(leftTopX, leftTopY, trackerSize, trackerSize));
     
     tracker->setObjectFeature(objImage);
     
     ROS_INFO("Starting Tracking ... " );
-
+    
     startTracking = true;
 
-    trackerMutex.unlock();
+    //trackerMutex.unlock();
   }
 }
 
-void trackerAdjustingCallback(const geometry_msgs::Twist::ConstPtr & msg)
+//void trackerAdjustingCallback(const geometry_msgs::Twist::ConstPtr & msg)
+void trackerAdjustingCallback(const std_msgs::String::ConstPtr & msg)
 {
 
+  /*
   ROS_INFO("Change Tracker Size ... ");
-  
+ 
   float sizeFactor = msg->linear.x;
   sizeFactor = sizeFactor < 0? - sizeFactor : sizeFactor;
-
   std::cout << "size factor = " << sizeFactor << std::endl;
   
   int size = (int)(trackerMaxSize * sizeFactor);
   
   size = size < 10? 10 : size;
-
   std::cout << "Tracker size = " << size << std::endl;
 
   trackerSize = size;
-}
+  */
 
+  ROS_INFO("Change tracker size and initial position");
+  
+  std::string size = msg->data;
+
+  std::vector<std::string> xyWidthHeight = split(size, ' ');
+  
+  if( xyWidthHeight.size() < 4){
+    ROS_ERROR("Wrong Tracker Size Fomat!");
+  }
+  
+  else{
+    leftTopX = atoi(xyWidthHeight.at(0).c_str());
+    leftTopY = atoi(xyWidthHeight.at(1).c_str());
+    width = atoi(xyWidthHeight.at(2).c_str());
+    height = atoi(xyWidthHeight.at(3).c_str());
+    trackerSize = width <= height ? width : height;
+
+    std::cout << "Tracker size and position changed: " << leftTopX << " " << leftTopY << " " << trackerSize << std::endl;
+  }
+}
 
 void trackingToggleCallback(const std_msgs::String::ConstPtr& msg)
 {
@@ -285,7 +335,8 @@ int main(int argc, char **argv)
     ROS_ERROR("Subscribing Error!");
   }
 
-  ros::Subscriber trackSizeSub = nh.subscribe<geometry_msgs::Twist>("/change_tracker_size", 1, trackerAdjustingCallback);
+  //ros::Subscriber trackSizeSub = nh.subscribe<geometry_msgs::Twist>("/change_tracker_size", 1, trackerAdjustingCallback);
+  ros::Subscriber trackSizeSub = nh.subscribe<std_msgs::String>("/change_tracker_size", 1, trackerAdjustingCallback);
  
   ros::Subscriber trackingToggleSub = nh.subscribe<std_msgs::String>("/tracking_toggle", 1, trackingToggleCallback);
   

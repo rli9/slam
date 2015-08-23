@@ -78,7 +78,6 @@ private:
 	int m_initialSampleRange;
 
 	
-
 	float getSampleProbability(int sample_id);
 
 	void calculateHueHistogram(cv::Mat & inputHSVImage, cv::Mat & hist);
