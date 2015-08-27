@@ -17,22 +17,31 @@ except:
 
 
 def check_format(func):
-    cmds = ['forward:', 'turnRight:', 'turnLeft:']
 
     def wrapped(*args, **kargs):
         self = args[0]
-        msg = eval(kargs['msg'])[0][2]
+        # self defined command
+
+        # command format : [[cmd, key1,value1,key2,value2...],[],[]]
+        msg = eval(kargs['msg'])[-1][2]
         print("Received Msg %s" % msg)
         # the first two args is position in scratch
-        cmd_map = {}
+        # cmd_map = {}
+        cmd_map = []
         for cmd in msg:
-            print("Cmd %s , Value %s" % (cmd[0], cmd[1]))
-            if cmd[0] not in cmds:
-                print("cmd error, we don't have", cmd)
-                return 'cmd error'
-            else:
-                # remove the :
-                cmd_map[cmd[0][:-1]] = cmd[1]
+            if cmd[0] == 'procDef':
+                continue
+            action = cmd[1].split(' ')[0]
+            params = {}
+            for i in range(2, len(cmd)-1 ,2):
+                if i >= len(cmd):
+                    break
+                print("i: %s, cmd %s, i+1: %s, cmd: %s"%(i,cmd[i], i+1, cmd[i+1]))
+                params[cmd[i]] = cmd[i+1]
+
+            # cmd_map[action] = params
+            cmd_map.append( (action, params) )
+
         print("Get Cmd Map ", cmd_map)
         func(self, cmd_map)
         print('Cmd publish DONE')
@@ -48,8 +57,12 @@ class Server(object):
         self.s.bind((self.host, self.port))
         self.conn = None  # received socket connection
         self.address = None  # bind socket address
-        rospy.init_node('car_control_scratch', log_level=rospy.INFO)
-        self.pub = rospy.Publisher('car_control_manual', String, queue_size=100)
+
+        self.pub = rospy.Publisher('/car_control_manual', String, queue_size=100)
+        rospy.init_node('car_control_manual', log_level=rospy.INFO)
+        print("Publisher Ready.", rospy.is_shutdown())
+        ret = self.pub.publish(String('The first Msg.'))
+        print("Publish Ret  %s" % ret)
 
     def listen(self, maxinum=1, buffer=1024):
         '''
@@ -66,14 +79,20 @@ class Server(object):
                 data = self.conn.recv(buffer)
                 if data:
                     print("Raw Data : ", data)
-                    self.publish_cmd(msg=data)
+                    print(type(data))
+                    self.pub.publish( data )
+                    #self.publish_cmd(msg=data)
+                    print("publish done.")
                 self.conn.sendall("ok")
 
     @check_format
     def publish_cmd(self, cmd_dict):
-        for key, value in cmd_dict.items():
-            self.pub.publish(key+":"+str(value))
-            print("Published %s" % key+":"+str(value))
+        for key in cmd_dict:
+            # self.pub.publish(key+":"+str(cmd_dict[key]))
+            self.pub.publish(key[0]+":"+str(key[1]))
+            # print("Published %s" % key+":"+str(cmd_dict[key]))
+            print("published %s "% key[0]+":"+str(key[1]))
+
     def close(self):
         self.conn.close()
 
@@ -95,25 +114,3 @@ class Client(object):
 
     def close(self):
         self.s.close()
-
-
-if __name__ == "__main__":
-    import os
-
-    if os.getenv('ENV', None) == 'client' or not os.getenv('ENV', None):
-        host = '192.168.1.219'
-        port = 50007
-
-        cli = Client(host, port)
-        cli.connect()
-        res = cli.send("Test msg socket")
-        if res == "ok":
-            print("test ok")
-
-        cli.close()
-    elif os.getenv('ENV', None) == 'server':
-        ser = Server()
-        ser.listen()
-        ser.close()
-    else:
-        print("Please set your EVN var of system")

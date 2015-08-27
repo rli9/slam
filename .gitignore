@@ -56,3 +56,5 @@ docs/_build/
 #ide
 .idea/
 
+#scratch file
+*.sb2

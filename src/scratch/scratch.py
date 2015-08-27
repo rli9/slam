@@ -3,12 +3,12 @@ from __future__ import print_function
 
 __author__ = 'Simon Zheng'
 
-import connect_to_host as connect
+import server_client as connect
 import watch_file as wf
 import socket
 import os
 import rospy
-Host = os.environ.get('SCRATCH_HOST')
+Host = os.environ.get('SCRATCH_HOST') or '192.168.1.219'
 Port = os.environ.get('SCRATCH_PORT') or 50007
 
 print("Host %s, PORT %s" %(Host, Port))
