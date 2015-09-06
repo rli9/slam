@@ -29,14 +29,13 @@ class DisplayPanel(wx.Panel):
 
         # keyboard bind
         self.down_keys = 0
-        self.pub = rospy.Publisher('car_control_manual', CarControlMsg, queue_size = 10)
-
+        self.pub = rospy.Publisher('car_control_manual', String, queue_size = 10)
         self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         self.Bind(wx.EVT_KEY_UP, self.on_key_up)
 
         # Image bind
         self.img_sub = rospy.Subscriber('image_publisher', String, self.img_callback, queue_size = 1 )
-        self.cap_que = Queue.Queue(maxsize=10000000)
+        self.cap_que = Queue.Queue(maxsize=10)
 
         self.bmp = wx.BitmapFromBuffer(640, 480, self.cap_que.get())
 

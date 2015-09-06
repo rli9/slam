@@ -58,3 +58,6 @@ docs/_build/
 
 #scratch file
 *.sb2
+
+# some config file
+prepare.sh
